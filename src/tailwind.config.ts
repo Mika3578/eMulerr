@@ -28,7 +28,22 @@ export default {
       fontFamily: {
         title: ['Impact', ...defaultTheme.fontFamily.sans],
         body: ['Roboto', ...defaultTheme.fontFamily.sans]
-      }
+      },
+      animation: {
+        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+        'progress-pulse': 'progress-pulse 2s ease-in-out infinite',
+      },
+      keyframes: {
+        'progress-pulse': {
+          '0%, 100%': { opacity: '1' },
+          '50%': { opacity: '0.85' },
+        },
+      },
+      boxShadow: {
+        'glow-green': '0 0 20px rgba(74, 222, 128, 0.15)',
+        'glow-primary': '0 0 20px rgba(92, 106, 196, 0.2)',
+        'inner-lg': 'inset 0 2px 4px 0 rgb(0 0 0 / 0.15)',
+      },
     },
   },
   plugins: [

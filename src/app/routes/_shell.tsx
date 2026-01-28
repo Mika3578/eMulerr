@@ -9,7 +9,7 @@ import {
   useOutlet,
 } from "@remix-run/react"
 import { PropsWithChildren, useState } from "react"
-import { restartAmule, amuleGetStats } from "amule/amule"
+import { restartAmule, amuleGetStats, amuleGetShared } from "amule/amule"
 import { useRevalidate } from "~/utils/useRevalidate"
 import { readableSize } from "~/utils/math"
 import { twMerge } from "tailwind-merge"
@@ -18,6 +18,7 @@ import { SearchIcon } from "~/icons/searchIcon"
 import { UpIcon } from "~/icons/upIcon"
 import { DownIcon } from "~/icons/downIcon"
 import { AddIcon } from "~/icons/addIcon"
+import { UploadIcon } from "~/icons/uploadIcon"
 import { getCategories } from "~/data/categories"
 import { getDownloadClientFiles } from "~/data/downloadClient"
 
@@ -29,8 +30,14 @@ export const action = (async ({ request }) => {
 export const loader = (async () => {
   const stats = await amuleGetStats()
   const downloads = await getDownloadClientFiles()
+  const shared = await amuleGetShared()
   const ed2kPort = process.env.ED2K_PORT
   const version = process.env.IMG_VER
+
+  // Count shared files that are not in active downloads
+  const sharedCount = shared.filter(
+    (s) => !downloads.some((d) => d.hash === s.hash)
+  ).length
 
   return json({
     version,
@@ -39,6 +46,7 @@ export const loader = (async () => {
     speed_down: stats.speed_down ?? 0,
     ed2kPort,
     downloads,
+    sharedCount,
     time: new Date(),
     categories: await getCategories(),
   })
@@ -55,44 +63,44 @@ export default function Layout() {
 
   return (
     <>
-      <header className="fixed top-0 z-40 flex h-[60px] w-full shrink-0 items-center gap-3 whitespace-nowrap border-b border-neutral-700 bg-neutral-800 p-3 text-white">
-        <NavLink to="/" className="hidden items-center sm:flex">
-          <img alt="logo" src="/logo.png" className="h-7" />
-          <div className="ml-3 hidden sm:block">eMulerr</div>
+      <header className="glass-header fixed top-0 z-40 flex h-[60px] w-full shrink-0 items-center gap-4 whitespace-nowrap px-4 text-white">
+        <NavLink to="/" className="hidden items-center gap-3 sm:flex">
+          <img alt="logo" src="/logo.png" className="h-8 drop-shadow-lg" />
+          <span className="text-lg font-semibold tracking-tight">eMulerr</span>
         </NavLink>
         <button
-          className="block p-2 text-xl sm:hidden"
+          className="block rounded-lg p-2 text-xl hover:bg-neutral-700/50 sm:hidden"
           onClick={() => setMenuHidden((o) => !o)}
         >
           <MenuIcon />
         </button>
         <div className="grow"></div>
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col items-end gap-x-2 sm:flex-row">
-            <span
-              className="text-upload text-sm"
-              title="Upload Speed - Small activity indicates P2P handshakes"
-            >
-              <UpIcon />
+
+        {/* Speed indicators with better styling */}
+        <div className="flex items-center gap-4 rounded-lg bg-neutral-700/30 px-3 py-1.5">
+          <div
+            className="flex items-center gap-1.5 text-sm"
+            title="Upload Speed - Small activity indicates P2P handshakes"
+          >
+            <UpIcon />
+            <span className="font-medium text-upload">
               {readableSize(data.speed_up)}/s
             </span>
-            <span
-              className="text-download text-sm"
-              title="Download Speed - Small activity indicates P2P handshakes"
-            >
-              <DownIcon />
+          </div>
+          <div className="h-4 w-px bg-neutral-600" />
+          <div
+            className="flex items-center gap-1.5 text-sm"
+            title="Download Speed - Small activity indicates P2P handshakes"
+          >
+            <DownIcon />
+            <span className="font-medium text-download">
               {readableSize(data.speed_down)}/s
             </span>
           </div>
-          {/* <span
-            className={`${data.bufferCount > 0 ? "text-buffer" : "text-error"} flex items-center gap-px text-sm`}
-            title="Buffer"
-          >
-            <BufferIcon />
-            {data.bufferCount}
-          </span> */}
         </div>
-        <div className="flex items-center gap-1">
+
+        {/* Status pills */}
+        <div className="flex items-center gap-2">
           <StatusPill
             state={
               !data.stats.id
@@ -145,8 +153,8 @@ export default function Layout() {
           >
             <button
               type="submit"
-              className="p-2 text-xl text-gray-100"
-              title="(!) Restart and Reconnect"
+              className="rounded-lg p-2 text-lg text-neutral-400 hover:bg-neutral-700/50 hover:text-white"
+              title="Restart and Reconnect"
             >
               <RestartIcon />
             </button>
@@ -159,71 +167,90 @@ export default function Layout() {
         onClick={() => setMenuHidden(true)}
       ></div>
       <nav
-        className="fixed top-[60px] z-40 flex h-[calc(100%-60px)] w-[250px] flex-col bg-neutral-800 max-sm:transition-transform max-sm:data-[hidden=true]:-translate-x-full"
+        className="fixed top-[60px] z-40 flex h-[calc(100%-60px)] w-[260px] flex-col border-r border-neutral-700/50 bg-neutral-800/95 backdrop-blur-sm max-sm:transition-transform max-sm:duration-300 max-sm:data-[hidden=true]:-translate-x-full"
         data-hidden={menuHidden}
       >
-        <StyledNavLink to="/?index" onClick={() => setMenuHidden(true)}>
-          Home
-        </StyledNavLink>
-        <StyledNavLink
-          to="/download-client"
-          onClick={() => setMenuHidden(true)}
-        >
-          <span className="text-download">
-            <DownloadIcon />
-          </span>
-          <span>Downloads</span>
-          <span className="grow text-right">({data.downloads.length})</span>
-        </StyledNavLink>
-        <StyledNavLink to="/search" onClick={() => setMenuHidden(true)}>
-          <SearchIcon /> Search
-        </StyledNavLink>
+        <div className="flex flex-col py-2">
+          <StyledNavLink to="/?index" onClick={() => setMenuHidden(true)}>
+            <HomeIcon />
+            <span>Home</span>
+          </StyledNavLink>
+          <StyledNavLink
+            to="/download-client"
+            onClick={() => setMenuHidden(true)}
+          >
+            <span className="text-download">
+              <DownloadIcon />
+            </span>
+            <span className="grow">Downloads</span>
+            <span className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs font-medium">
+              {data.downloads.length}
+            </span>
+          </StyledNavLink>
+          <StyledNavLink to="/shared" onClick={() => setMenuHidden(true)}>
+            <span className="text-upload">
+              <UploadIcon />
+            </span>
+            <span className="grow">Shared</span>
+            <span className="rounded-full bg-neutral-700 px-2 py-0.5 text-xs font-medium">
+              {data.sharedCount}
+            </span>
+          </StyledNavLink>
+          <StyledNavLink to="/search" onClick={() => setMenuHidden(true)}>
+            <SearchIcon />
+            <span>Search</span>
+          </StyledNavLink>
+        </div>
         <div className="grow"></div>
-        <button
-          className="m-4 flex items-center justify-center gap-2 rounded-md border-2 border-neutral-600 bg-neutral-300 p-4 font-medium leading-none text-neutral-900 lg:gap-4"
-          onClick={() => {
-            const urls = prompt(
-              "Enter eD2k links (multiple links separated by semicolon)"
-            )
-              ?.trim()
-              .split(";")
-              .map((u) => u.trim())
-              .filter((u) => !!u)
 
-            if (!urls?.length) return
-
-            let category: string | null =
-              data.categories.length === 1 ? data.categories[0]! : null
-            while (!category) {
-              category = prompt(
-                `Select a download category:\n${data.categories.map((c) => "  - " + c).join("\n")}`
+        {/* Improved add button */}
+        <div className="p-4">
+          <button
+            className="btn-primary w-full py-3"
+            onClick={() => {
+              const urls = prompt(
+                "Enter eD2k links (multiple links separated by semicolon)"
               )
-              if (!category) return
-            }
+                ?.trim()
+                .split(";")
+                .map((u) => u.trim())
+                .filter((u) => !!u)
 
-            const formData = new FormData()
-            formData.append("category", category)
-            urls.forEach((url) => formData.append("urls", url))
+              if (!urls?.length) return
 
-            fetcher.submit(formData, {
-              method: "POST",
-              action: "/api/v2/ed2k/add",
-            })
+              let category: string | null =
+                data.categories.length === 1 ? data.categories[0]! : null
+              while (!category) {
+                category = prompt(
+                  `Select a download category:\n${data.categories.map((c) => "  - " + c).join("\n")}`
+                )
+                if (!category) return
+              }
 
-            alert("Download started!")
-            navigate("/download-client")
-          }}
-        >
-          <span className="text-xl">
-            <AddIcon />
-          </span>
-          <span>Add eD2k link</span>
-        </button>
-        <span className="mb-4 select-text text-center text-sm text-neutral-500">
+              const formData = new FormData()
+              formData.append("category", category)
+              urls.forEach((url) => formData.append("urls", url))
+
+              fetcher.submit(formData, {
+                method: "POST",
+                action: "/api/v2/ed2k/add",
+              })
+
+              alert("Download started!")
+              navigate("/download-client")
+            }}
+          >
+            <span className="text-xl">
+              <AddIcon />
+            </span>
+            <span>Add eD2k Link</span>
+          </button>
+        </div>
+        <span className="mb-4 select-text text-center text-xs text-neutral-500">
           {data.version}
         </span>
       </nav>
-      <main className="relative mt-[60px] sm:ml-[250px]">{outlet}</main>
+      <main className="relative mt-[60px] sm:ml-[260px]">{outlet}</main>
     </>
   )
 }
@@ -231,9 +258,9 @@ export default function Layout() {
 function StyledNavLink({ ...props }: Omit<NavLinkProps, "className">) {
   return (
     <NavLink
-      className={twMerge(
-        "flex items-center gap-4 px-6 py-4 font-medium text-white aria-disabled:pointer-events-none aria-disabled:opacity-50 aria-[current=page]:bg-neutral-700"
-      )}
+      className={({ isActive }) =>
+        twMerge("nav-link", isActive && "nav-link-active")
+      }
       {...props}
     />
   )
@@ -249,20 +276,39 @@ function StatusPill({
   title: Record<typeof state, string>
 }>) {
   const styles: Record<typeof state, string> = {
-    info: "bg-slate-700 border-slate-500",
-    ok: "bg-green-700 border-green-500",
-    warn: "bg-yellow-700 border-yellow-500",
-    error: "bg-red-600 border-red-400",
+    info: "border-slate-500/50 bg-slate-500/20 text-slate-300",
+    ok: "border-green-500/50 bg-green-500/20 text-green-300",
+    warn: "border-yellow-500/50 bg-yellow-500/20 text-yellow-300",
+    error: "border-red-500/50 bg-red-500/20 text-red-300",
   }
 
   return (
     <span
-      className={`rounded-full border px-1 py-1 text-xs font-medium sm:px-2 sm:text-sm ${styles[state]}`}
+      className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium backdrop-blur-sm transition-colors ${styles[state]}`}
       title={title[state]}
       {...props}
     >
+      <span className={`status-dot ${state}`} />
       {children}
     </span>
+  )
+}
+
+function HomeIcon() {
+  return (
+    <svg
+      aria-hidden="true"
+      focusable="false"
+      role="img"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 576 512"
+      style={{ display: "inline-block", height: "1em", verticalAlign: "text-top" }}
+    >
+      <path
+        fill="currentColor"
+        d="M575.8 255.5c0 18-15 32.1-32 32.1h-32l.7 160.2c0 2.7-.2 5.4-.5 8.1V472c0 22.1-17.9 40-40 40H456c-1.1 0-2.2 0-3.3-.1c-1.4 .1-2.8 .1-4.2 .1H416 392c-22.1 0-40-17.9-40-40V448 384c0-17.7-14.3-32-32-32H256c-17.7 0-32 14.3-32 32v64 24c0 22.1-17.9 40-40 40H160 128.1c-1.5 0-3-.1-4.5-.2c-1.2 .1-2.4 .2-3.6 .2H104c-22.1 0-40-17.9-40-40V360c0-.9 0-1.9 .1-2.8V287.6H32c-18 0-32-14-32-32.1c0-9 3-17 10-24L266.4 8c7-7 15-8 22-8s15 2 21 7L564.8 231.5c8 7 12 15 11 24z"
+      />
+    </svg>
   )
 }
 

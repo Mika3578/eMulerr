@@ -49,11 +49,12 @@ export function createJsonDb<Schema>(
       await writeFile(`${fileName}.new`, content, { encoding: "utf8" })
       await rm(fileName).catch(() => { })
       await rename(`${fileName}.new`, fileName)
-      await chown(
-        fileName,
-        parseInt(process.env.PUID),
-        parseInt(process.env.PGID)
-      )
+      // Only chown on Linux with valid PUID/PGID (Docker environment)
+      const puid = parseInt(process.env.PUID ?? "")
+      const pgid = parseInt(process.env.PGID ?? "")
+      if (!isNaN(puid) && !isNaN(pgid)) {
+        await chown(fileName, puid, pgid).catch(() => { })
+      }
     })
   }, 5000)
 

@@ -64,6 +64,36 @@ export const getDownloadClientFiles = staleWhileRevalidate(async function () {
   return files
 })
 
+// Get shared files separately with upload statistics
+export const getSharedFiles = staleWhileRevalidate(async function () {
+  const uploads = await amuleGetUploads()
+  const downloads = await amuleGetDownloads()
+  const shared = await amuleGetShared()
+  const metadata = metadataDb.data
+
+  // Filter out files that are still downloading
+  const completedShared = shared.filter(
+    (f) => !downloads.some((d) => d.hash === f.hash)
+  )
+
+  return completedShared.map((f) => ({
+    ...f,
+    // Current upload speed for this file
+    up_speed: uploads
+      .filter((u) => u.name === f.name)
+      .map((u) => u.xfer_speed)
+      .reduce((prev, curr) => prev + curr, 0),
+    // Upload stats from amule
+    total_uploaded: f.xfer_all,
+    session_uploaded: f.xfer,
+    requests_all: f.req_all,
+    requests_session: f.req,
+    accepts_all: f.accept_all,
+    accepts_session: f.accept,
+    meta: metadata[f.hash],
+  }))
+})
+
 export async function download(
   hash: string,
   name: string,
