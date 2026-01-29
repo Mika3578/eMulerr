@@ -45,9 +45,9 @@ function caps(_url: URL) {
   <retention days="1"/>
   <registration available="no" open="no" />
   <searching>
-    <search available="yes" supportedParams="q"/>
+    <search available="yes" supportedParams="q" searchEngine="raw"/>
     <movie-search available="no"/>
-    <tv-search available="yes" supportedParams="q,season,ep"/>
+    <tv-search available="yes" supportedParams="q,season,ep" searchEngine="raw"/>
   </searching>
   <categories>
     <category id="2000" name="Movies" />
@@ -57,12 +57,12 @@ function caps(_url: URL) {
   </categories>
   <tags>
     <tag name="freeleech" description="FreeLeech" />
-   </tags>
+  </tags>
 </caps>`
 }
 
 async function rawSearch(url: URL) {
-  let q = url.searchParams.get("q")
+  const q = sanitizeQuery(url.searchParams.get("q"))
   const offset = url.searchParams.get("offset")
   const cat =
     url.searchParams
@@ -86,7 +86,7 @@ async function rawSearch(url: URL) {
 }
 
 async function tvSearch(url: URL) {
-  const q = url.searchParams.get("q")?.toString()
+  const q = sanitizeQuery(url.searchParams.get("q")?.toString())
   const season = url.searchParams.get("season")?.toString()
   const episode = url.searchParams.get("ep")?.toString()
   const offset = url.searchParams.get("offset")?.toString()
@@ -110,14 +110,18 @@ async function tvSearch(url: URL) {
   const episodeQuery = [
     ...new Set(
       season && episode
-        ? [
-            `${season}x${episode}`,
-            `${season}x${episode.padStart(2, "0")}`,
-            `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`,
-            `S${season}E${episode}`,
-          ]
+        ? ["/", "-"].some((c) => episode.includes(c)) // daily episode
+          ? [`${season}/${episode}`]
+          : [
+              `${season}x${episode}`,
+              `${season}x${episode.padStart(2, "0")}`,
+              `S${season.padStart(2, "0")}E${episode.padStart(2, "0")}`,
+              `S${season}E${episode}`,
+            ]
         : season
-          ? [`${season}x`, `S${season.padStart(2, "0")}`, `S${season}`]
+          ? season.length === 4 // daily episode
+            ? [season]
+            : [`${season}x`, `S${season.padStart(2, "0")}`, `S${season}`]
           : []
     ),
   ].filter(skipFalsy)
@@ -126,4 +130,17 @@ async function tvSearch(url: URL) {
   const query = group([q, episodeFilter], "AND", false)
   const searchResults = await search(query)
   return itemsResponse(searchResults, cat)
+}
+
+function sanitizeQuery(q: string | undefined | null) {
+  if (!q) {
+    return q
+  }
+
+  return q
+    .normalize("NFKD")
+    .replace(/[\u0100-\uFFFF]/g, "")
+    .replace(/[^\w '-]/g, " ")
+    .replace(/ +/g, " ")
+    .trim()
 }
