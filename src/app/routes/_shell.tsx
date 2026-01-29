@@ -19,6 +19,7 @@ import { UpIcon } from "~/icons/upIcon"
 import { DownIcon } from "~/icons/downIcon"
 import { AddIcon } from "~/icons/addIcon"
 import { getCategories } from "~/data/categories"
+import { getDownloadClientFiles } from "~/data/downloadClient"
 
 export const action = (async ({ request }) => {
   void restartAmule().catch(() => {})
@@ -27,13 +28,17 @@ export const action = (async ({ request }) => {
 
 export const loader = (async () => {
   const stats = await amuleGetStats()
+  const downloads = await getDownloadClientFiles()
   const ed2kPort = process.env.ED2K_PORT
+  const version = process.env.IMG_VER
 
   return json({
+    version,
     stats,
     speed_up: stats.speed_up ?? 0,
     speed_down: stats.speed_down ?? 0,
     ed2kPort,
+    downloads,
     time: new Date(),
     categories: await getCategories(),
   })
@@ -53,7 +58,7 @@ export default function Layout() {
       <header className="fixed top-0 z-40 flex h-[60px] w-full shrink-0 items-center gap-3 whitespace-nowrap border-b border-neutral-700 bg-neutral-800 p-3 text-white">
         <NavLink to="/" className="hidden items-center sm:flex">
           <img alt="logo" src="/logo.png" className="h-7" />
-          <div className="ml-3 hidden sm:block">eMulerr v0.0.0</div>
+          <div className="ml-3 hidden sm:block">eMulerr</div>
         </NavLink>
         <button
           className="block p-2 text-xl sm:hidden"
@@ -168,6 +173,7 @@ export default function Layout() {
             <DownloadIcon />
           </span>
           <span>Downloads</span>
+          <span className="grow text-right">({data.downloads.length})</span>
         </StyledNavLink>
         <StyledNavLink to="/search" onClick={() => setMenuHidden(true)}>
           <SearchIcon /> Search
@@ -176,22 +182,33 @@ export default function Layout() {
         <button
           className="m-4 flex items-center justify-center gap-2 rounded-md border-2 border-neutral-600 bg-neutral-300 p-4 font-medium leading-none text-neutral-900 lg:gap-4"
           onClick={() => {
-            const link = prompt("Enter eD2k link")
-            if (!link) return
+            const urls = prompt(
+              "Enter eD2k links (multiple links separated by semicolon)"
+            )
+              ?.trim()
+              .split(";")
+              .map((u) => u.trim())
+              .filter((u) => !!u)
+
+            if (!urls?.length) return
 
             let category: string | null =
               data.categories.length === 1 ? data.categories[0]! : null
-            while (!category || !data.categories.includes(category)) {
+            while (!category) {
               category = prompt(
                 `Select a download category:\n${data.categories.map((c) => "  - " + c).join("\n")}`
               )
               if (!category) return
             }
 
-            fetcher.submit(
-              { category, urls: link },
-              { method: "POST", action: "/api/v2/ed2k/add" }
-            )
+            const formData = new FormData()
+            formData.append("category", category)
+            urls.forEach((url) => formData.append("urls", url))
+
+            fetcher.submit(formData, {
+              method: "POST",
+              action: "/api/v2/ed2k/add",
+            })
 
             alert("Download started!")
             navigate("/download-client")
@@ -202,6 +219,9 @@ export default function Layout() {
           </span>
           <span>Add eD2k link</span>
         </button>
+        <span className="mb-4 select-text text-center text-sm text-neutral-500">
+          {data.version}
+        </span>
       </nav>
       <main className="relative mt-[60px] sm:ml-[250px]">{outlet}</main>
     </>

@@ -8,14 +8,22 @@ function run_amule() {
 }
 
 function run_emulerr() {
+    # wait until amule user is ready
+    while ! id amule &>/dev/null; do
+        sleep 0.5
+    done
+
     if [ -d /emulerr-dev ]; then
         cd /emulerr-dev
-        npm install --production=false
+        npm ci --production=false
         env NODE_ENV=development npm run dev
     else
+        chown -R "amule:amule" /emulerr
         cd /emulerr
         while true; do
-            env NODE_ENV=production npm run start
+            su amule -s /bin/sh <<'EOF'
+env NODE_ENV=production npm run start
+EOF
         done
     fi
 }
@@ -23,13 +31,43 @@ function run_emulerr() {
 function set_amule_options() {
     mkdir -p /config/amule
     cp /config-base/amule/amule.conf /config/amule/amule.conf
+    touch /config/amule/amule.overrides.conf
+    python3 - <<'EOF'
+import configparser
+
+config_path = "/config/amule/amule.conf"
+overrides_path = "/config/amule/amule.overrides.conf"
+
+class NoSpaceConfigParser(configparser.ConfigParser):
+    def write(self, fp, space_around_delimiters=False):
+        super().write(fp, space_around_delimiters=space_around_delimiters)
+
+config = NoSpaceConfigParser(interpolation=None)
+config.optionxform = str
+config.read(config_path) 
+
+override = NoSpaceConfigParser(interpolation=None)
+override.optionxform = str
+override.read(overrides_path) 
+
+for section in override.sections():
+    if not config.has_section(section):
+        config.add_section(section)
+    for key, value in override.items(section):
+        config.set(section, key, value)
+
+with open(config_path, "w") as f:
+    config.write(f, space_around_delimiters=False)
+EOF
     sed -i "s/Port=4662/Port=$ED2K_PORT/g" /config/amule/amule.conf
     sed -i "s/UDPPort=4672/UDPPort=$ED2K_PORT/g" /config/amule/amule.conf
     echo $'/tmp/shared\n/downloads/complete'| cat>| /config/amule/shareddir.dat
     rm -f /config/amule/muleLock
     rm -f /config/amule/ipfilter* # remove when bug is fixed
+    chown -R "${PUID}:${PGID}" /home/amule/.aMule
     chown -R "${PUID}:${PGID}" /config
     chown -R "${PUID}:${PGID}" /downloads
+    mkdir -p /downloads/complete
 }
 
 (run_amule) &
