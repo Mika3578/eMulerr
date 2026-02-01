@@ -84,7 +84,7 @@ The `docker-compose.yml` includes LazyLibrarian as a supported app. Configure eM
 
 1. **Build and start**: `docker compose build emulerr && docker compose up -d`
 2. **LazyLibrarian UI**: http://localhost:5299/home
-3. **Add eMulerr as downloader**: Config → Downloaders → Use qBitTorrent:
+3. **Add eMulerr as downloader**: Config → Downloaders → Use qBittorrent:
    - Host: `emulerr`
    - Port: `3000`
    - Username: `emulerr`
