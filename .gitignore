@@ -399,3 +399,7 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Local dev/testing artifacts (curl cookies, etc.)
+cookies.txt
+qb.txt

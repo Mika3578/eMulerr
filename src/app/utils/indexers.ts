@@ -23,10 +23,26 @@ export const emptyResponse = () => `
     </channel>
   </rss>`
 
+const VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "wmv", "mpeg", "mpg"]
+const BOOK_EXTENSIONS = ["epub", "mobi", "pdf", "azw3", "djvu", "fb2", "doc", "docx", "mp3", "m4b", "m4a"]
+
 export async function search(q: string) {
   const searchResults = await searchAndWaitForResults(q)
+  return filterByExtensions(searchResults, VIDEO_EXTENSIONS, "video")
+}
+
+export async function bookSearch(q: string) {
+  const searchResults = await searchAndWaitForResults(q)
+  return filterByExtensions(searchResults, BOOK_EXTENSIONS, "book")
+}
+
+function filterByExtensions(
+  searchResults: Awaited<ReturnType<typeof searchAndWaitForResults>>,
+  extensions: string[],
+  type: string
+) {
   const { allowed, skipped } = searchResults.reduce((prev, curr) => {
-    if (["mp4", "mkv", "avi", "wmv", "mpeg", "mpg"].some((ext) => curr.name.endsWith(`.${ext}`))) {
+    if (extensions.some((ext) => curr.name.toLowerCase().endsWith(`.${ext}`))) {
       prev.allowed.push(curr)
     } else {
       prev.skipped.push(curr)
@@ -35,7 +51,7 @@ export async function search(q: string) {
   }, { allowed: [] as typeof searchResults, skipped: [] as typeof searchResults })
 
   if (skipped.length > 0) {
-    logger.debug(`${skipped.length} results excluded with unknown file extensions:`)
+    logger.debug(`${skipped.length} ${type} results excluded with unknown file extensions:`)
     skipped.forEach(r => {
       logger.debug(`\t- ${r.name} (${readableSize(r.size)})`)
     })
@@ -55,10 +71,12 @@ export const itemsResponse = (
   (item) => `
           <item>
             <title>${encode(item.name)}</title>
+            <link>${encode(item.magnetLink)}</link>
             <guid>${item.hash}-${encode(item.name)}</guid>
             <pubDate>${buildRFC822Date(new Date())}</pubDate>
-            <enclosure url="${encode(item.magnetLink)}" length="${item.size}" type="application/x-bittorrent" />
+            <enclosure url="${encode(item.magnetLink)}" length="${item.size}" type="application/x-bittorrent;x-scheme-handler/magnet" />
             <torznab:attr name="size" value="${item.size}" />
+            <torznab:attr name="magneturl" value="${encode(item.magnetLink)}" />
             ${categories.map((c) => `<torznab:attr name="category" value="${c}" />`).join("")}
             <torznab:attr name="seeders" value="${item.sources}" />
             <torznab:attr name="downloadvolumefactor" value="0" />

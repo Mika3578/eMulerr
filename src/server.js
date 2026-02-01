@@ -54,7 +54,18 @@ if (process.env.PASSWORD !== "") {
   })
 
   app.use((req, res, next) => {
-    if (req.path === "/health" || req.path === "/api/v2/auth/login") {
+    if (
+      req.path === "/health" ||
+      req.path === "/api/v2/auth/login" ||
+      req.path === "/login" ||
+      req.path === "/api/v2/app/webapiVersion" ||
+      req.path === "/api/v2/app/version"
+    ) {
+      return next()
+    }
+
+    // Torznab caps (t=caps) - allow unauthenticated so LazyLibrarian etc can discover capabilities
+    if (req.path === "/api" && req.query.t === "caps") {
       return next()
     }
 

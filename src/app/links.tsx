@@ -10,6 +10,18 @@ export function toMagnetLink(hash: string, name: string, size: number) {
 }
 
 export function fromMagnetLink(magnetLink: string) {
+  const result = tryFromEmulerrMagnetLink(magnetLink)
+  if (!result) {
+    throw new Error("Invalid magnet link")
+  }
+  return result
+}
+
+/**
+ * Try to parse eMulerr-format magnet link (from Torznab indexer).
+ * Returns null for standard BitTorrent magnets - eMulerr only supports eD2k content.
+ */
+export function tryFromEmulerrMagnetLink(magnetLink: string) {
   const extractMagnetLinkInfo =
     /magnet:\?xt=urn:btih:(?<hash>.*)&dn=(?<name>.*)&xl=(?<size>[^&]+)&tr=http:\/\/emulerr/
   const {
@@ -19,7 +31,7 @@ export function fromMagnetLink(magnetLink: string) {
   } = extractMagnetLinkInfo.exec(magnetLink)?.groups ?? {}
 
   if (!base32Hash || !name || !size) {
-    throw new Error("Invalid magnet link")
+    return null
   }
 
   const hash = Buffer.from(base32.decode.asBytes(base32Hash))

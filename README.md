@@ -1,6 +1,6 @@
 # eMulerr
 
-Seamless integration for eD2k/KAD (eMule) networks and Radarr/Sonarr, enjoy.
+Seamless integration for eD2k/KAD (eMule) networks and Radarr, Sonarr, LazyLibrarian, Readarr, Medusa, enjoy.
 
 [![Docker](https://img.shields.io/badge/docker-%230db7ed.svg?style=for-the-badge&logo=docker&logoColor=white)](https://hub.docker.com/r/isc30/emulerr)
 
@@ -33,7 +33,7 @@ services:
       # - ./shared:/shared:ro # optional, extra files to be shared via ed2k/kad
 ```
 
-(Optional) Add eMulerr as a dependency for Radarr, Sonarr, etc:
+(Optional) Add eMulerr as a dependency for Radarr, Sonarr, LazyLibrarian, Readarr, Medusa, etc:
 
 ```diff
  radarr:
@@ -43,9 +43,11 @@ services:
 +      condition: service_healthy
 ```
 
-## Configuring *rr
+## Configuring Radarr, Sonarr, LazyLibrarian, Readarr, Medusa
 
-In order to get started, configure the Download Client in *RR:
+Radarr, Sonarr, [LazyLibrarian](https://lazylibrarian.gitlab.io/) (GitLab), Readarr, and Medusa all use qBittorrent Web API v2. Use the same configuration:
+
+In order to get started, configure the Download Client:
 
 - Type: `qBittorrent`
 - Name: `emulerr`
@@ -61,7 +63,7 @@ Also set the Download Client's `Remote Path Mappings`:
 - Remote Path: `/downloads`
 - Local Path: `{The /downloads folder inside MOUNTED PATH FOR RADARR}`
 
-Then, add a new Indexer in *RR:
+Then, add a new Indexer (Radarr, Sonarr, Readarr) or Torznab provider (LazyLibrarian, Readarr):
 
 - Type: `Torznab`
 - Name: `emulerr`
@@ -71,6 +73,30 @@ Then, add a new Indexer in *RR:
 - URL: `http://emulerr:3000/`
 - API Key (if using PASSWORD): `PASSWORD` (from environment variable)
 - Download Client: `emulerr`
+
+For LazyLibrarian and Readarr (books/audiobooks): enable **E** (Ebook) and optionally **A** (Audiobook) in Types, and tick the provider to use it in searches.
+
+> **Note**: eMulerr only supports eD2k content from its Torznab indexer. Standard BitTorrent magnets from Torznab/RSS providers (Jackett, etc.) will not work—those use the BitTorrent network, while eMulerr uses eD2k/KAD. For BitTorrent content, use a real qBittorrent client.
+
+## LazyLibrarian setup (docker-compose)
+
+The `docker-compose.yml` includes LazyLibrarian as a supported app. Configure eMulerr as both download client and Torznab provider:
+
+1. **Build and start**: `docker compose build emulerr && docker compose up -d`
+2. **LazyLibrarian UI**: http://localhost:5299/home
+3. **Add eMulerr as downloader**: Config → Downloaders → Use qBitTorrent:
+   - Host: `emulerr`
+   - Port: `3000`
+   - Username: `emulerr`
+   - Password: `1234` (matches PASSWORD env)
+   - Label: `books` (optional)
+4. **Directory** (where LazyLibrarian expects completed downloads): `/data/usenet/complete`
+5. Use the **Test** button to verify the connection.
+6. **Add eMulerr as Torznab provider** (Config → Providers → Torznab):
+   - URL: `http://emulerr:3000/`
+   - API Key (if using PASSWORD): `PASSWORD` (from environment variable)
+   - Types: Enable **E** (Ebook) and optionally **A** (Audiobook)
+   - Tick the provider to use it in searches.
 
 ## aMule configuration overrides
 

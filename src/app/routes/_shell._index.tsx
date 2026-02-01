@@ -12,7 +12,7 @@ export default function Index() {
     <main className="p-4">
       <h1 className="mb-8">Welcome to eMulerr!</h1>
       <p className="my-2">
-        In order to get started, configure the Download Client in *RR:
+        In order to get started, configure the Download Client in Radarr, Sonarr, LazyLibrarian, Readarr, Medusa, etc:
       </p>
       <ul className="list-disc pl-16 [&>*]:select-text">
         <li>Type: qBittorrent</li>
@@ -24,7 +24,7 @@ export default function Index() {
         <li>Priority: 50</li>
         <li>Remove completed: Yes</li>
       </ul>
-      <p className="my-2 mt-8">Then, configure the indexer in *RR:</p>
+      <p className="my-2 mt-8">Then, configure the indexer (or Torznab provider in LazyLibrarian):</p>
       <ul className="list-disc pl-16 [&>*]:select-text">
         <li>Type: Torznab</li>
         <li>Name: emulerr</li>
