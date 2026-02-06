@@ -2,7 +2,12 @@ import { json, LoaderFunction } from "@remix-run/node"
 import { useLoaderData } from "@remix-run/react"
 
 export const loader = (async () => {
-  return json({ port: process.env.PORT, password: process.env.PASSWORD, ed2kPort: process.env.ED2K_PORT })
+  const passwordSet = !!(process.env.PASSWORD != null && process.env.PASSWORD !== "")
+  return json({
+    port: process.env.PORT,
+    passwordPlaceholder: passwordSet ? "********" : "",
+    ed2kPort: process.env.ED2K_PORT,
+  })
 }) satisfies LoaderFunction
 
 export default function Index() {
@@ -19,8 +24,8 @@ export default function Index() {
         <li>Name: emulerr</li>
         <li>Host: THIS_CONTAINER_NAME</li>
         <li>Port: {data.port}</li>
-        {data.password !== "" && <li>Username: emulerr</li>}
-        {data.password !== "" && <li>Password: {data.password}</li>}
+        {data.passwordPlaceholder && <li>Username: emulerr</li>}
+        {data.passwordPlaceholder && <li>Password: {data.passwordPlaceholder}</li>}
         <li>Priority: 50</li>
         <li>Remove completed: Yes</li>
       </ul>
@@ -32,7 +37,7 @@ export default function Index() {
         <li>Automatic Search: Up to you, maybe it downloads porn</li>
         <li>Interactive Search: Yes</li>
         <li>URL: http://THIS_CONTAINER_NAME:{data.port}/</li>
-        {data.password !== "" && <li>API Key: {data.password}</li>}
+        {data.passwordPlaceholder && <li>API Key: {data.passwordPlaceholder}</li>}
         <li>Download Client: emulerr</li>
       </ul>
       <p className="my-2 mt-8">In your router, open the following ports:</p>

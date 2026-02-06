@@ -17,13 +17,20 @@ export const action = (async ({ request }) => {
     throw new Error("No URL to download")
   }
 
-  const tasks = urls.map(async (url) => {
-    const { hash, name, size } = fromEd2kLink(url)
-    const sanitizedName = sanitizeFilename(name)
-    console.log(sanitizedName)
-    await download(hash, sanitizedName, size, category)
-  })
-
-  await Promise.all(tasks)
-  return json({})
+  try {
+    const tasks = urls.map(async (url) => {
+      const { hash, name, size } = fromEd2kLink(url)
+      const sanitizedName = sanitizeFilename(name)
+      await download(hash, sanitizedName, size, category)
+    })
+    await Promise.all(tasks)
+    return json({})
+  } catch (err) {
+    logger.warn("api/v2/ed2k/add failed:", err)
+    const isInvalidInput = err instanceof Error && err.message?.includes("Invalid ed2k")
+    return json(
+      { error: err instanceof Error ? err.message : "Download failed" },
+      { status: isInvalidInput ? 400 : 500 }
+    )
+  }
 }) satisfies ActionFunction

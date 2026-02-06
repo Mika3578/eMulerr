@@ -16,8 +16,8 @@ export const loader = (async ({ request }) => {
         return !category || d.meta?.category === category
       })
       .map((f) => ({
-        // qBittorrent structure
-        hash: f.hash,
+        // qBittorrent structure; pad 32-char ed2k hash to 40 chars for LazyLibrarian
+        hash: f.hash.length === 32 ? f.hash + "00000000" : f.hash,
         name: f.name,
         size: f.size,
         size_done: f.size_done,
@@ -26,7 +26,7 @@ export const loader = (async ({ request }) => {
         dlspeed: f.speed,
         eta: f.eta,
         state: statusToQbittorrentState(f.status_str),
-        content_path: contentPath(f.name),
+        content_path: contentPath(f.name, f.meta?.category),
         category: f.meta?.category,
       })),
   ])
@@ -34,15 +34,19 @@ export const loader = (async ({ request }) => {
 
 export const action = loader
 
-function contentPath(name: string) {
-  if (existsSync(`/downloads/complete/${name}`)) {
-    return `/downloads/complete/${name}`
+function contentPath(name: string, category?: string) {
+  const cat = category?.toLowerCase()
+  const paths = [
+    cat === "books" && `/downloads/complete/books/${name}`,
+    cat === "magazines" && `/downloads/complete/magazines/${name}`,
+    `/downloads/complete/${name}`,
+    `/downloads/complete/books/${name}`,
+    `/downloads/complete/magazines/${name}`,
+    `/tmp/shared/${name}`,
+  ].filter(Boolean) as string[]
+  for (const p of paths) {
+    if (existsSync(p)) return p
   }
-
-  if (existsSync(`/tmp/shared/${name}`)) {
-    return `/tmp/shared/${name}`
-  }
-
   return undefined
 }
 
@@ -62,5 +66,7 @@ function statusToQbittorrentState(
       return "moving"
     case "stopped":
       return "pausedDL"
+    default:
+      return "unknown"
   }
 }

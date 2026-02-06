@@ -1,7 +1,9 @@
 import { LoaderFunction } from "@remix-run/node"
 
+// qBittorrent API compatibility: returns application version (e.g. v4.1.3)
+// Clients like LazyLibrarian call this endpoint first to verify connection
 export const loader = (() =>
-  new Response(`2.8.19`, {
+  new Response(`v4.1.3`, {
     status: 200,
     headers: {
       "Content-Type": "text/plain;charset=UTF-8",

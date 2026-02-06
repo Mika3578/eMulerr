@@ -72,6 +72,73 @@ Then, add a new Indexer in *RR:
 - API Key (if using PASSWORD): `PASSWORD` (from environment variable)
 - Download Client: `emulerr`
 
+## LazyLibrarian (ebooks, magazines, audiobooks)
+
+eMulerr supports LazyLibrarian for books, magazines, and audiobooks via the eD2K/KAD network.
+
+### Docker Compose
+
+Add LazyLibrarian with eMulerr as dependency:
+
+```yml
+lazylibrarian:
+  container_name: lazylibrarian
+  image: lscr.io/linuxserver/lazylibrarian:latest
+  ports:
+    - 5299:5299
+  environment:
+    - PUID=1000
+    - PGID=1000
+    - TZ=UTC
+  volumes:
+    - ./lazylibrarian-config:/config
+    - ./downloads:/downloads
+    - ./books:/books
+  restart: unless-stopped
+  depends_on:
+    emulerr:
+      condition: service_healthy
+```
+
+### Download Client (qBittorrent)
+
+In LazyLibrarian: **Config → Download Clients**
+
+- Type: `qBittorrent`
+- Name: `emulerr`
+- Host: `emulerr`
+- Port: `3000`
+- Username: `emulerr`
+- Password: `PASSWORD` (from eMulerr env)
+- Priority: `50`
+
+**Remote Path Mappings:**
+
+- Host: `emulerr`
+- Remote Path: `/downloads`
+- Local Path: `/downloads` (or LazyLibrarian's download folder path)
+
+### Torznab Indexer
+
+In LazyLibrarian: **Config → Providers → Torznab**
+
+- URL: `http://emulerr:3000/` (or `http://NAS:PORT/api` for caps/search)
+- API Key: `PASSWORD` (if set)
+- Types: E (ebook), M (magazine), A (audio) as needed
+- **Category mapping:**
+  - BookCat: `8000,8010,7020`
+  - MagCat: `8030,7040`
+  - AudioCat: `3030`
+
+**Final folders:** Ebooks go to `/downloads/complete/books`, magazines to `/downloads/complete/magazines`. Configure LazyLibrarian's Remote Path Mappings so these paths are accessible.
+
+### Magazines
+
+1. Go to **Magazines**
+2. Enter magazine title (e.g. `Hackable`) in "Magazine Title"
+3. Click **+ Magazine**
+4. Use **Search** to find issues on the eD2K network
+
 ## aMule configuration overrides
 
 You can override (or add) any setting from the base `amule.conf` without editing the original file.
@@ -87,6 +154,20 @@ Minimal example matching the shipped default with a changed nick:
 [eMule]
 Nick=emulerr_test_override
 ```
+
+## Troubleshooting
+
+### LazyLibrarian: "can only concatenate str (not bytes) to str" when adding magnet links
+
+This is a known LazyLibrarian bug with magnet links that use 32-character base32 info hashes. The error occurs in `calculate_torrent_hash()` before any request reaches eMulerr.
+
+**Fix:** Run the patch script (requires LazyLibrarian container to be running):
+
+```bash
+./scripts/patch-lazylibrarian-torrent-hash.sh lazylibrarian
+```
+
+Then restart LazyLibrarian. The patch adds `.decode()` so the hash is a string before concatenation.
 
 ## Removing stale downloads
 Since eMulerr simulates a qBittorrent api, it is fully compatible with:
