@@ -46,7 +46,8 @@ if (viteDevServer) {
 app.use(express.static("build/client", { maxAge: "1h" }))
 
 // password
-if (process.env.PASSWORD !== "") {
+const hasAuth = process.env.PASSWORD != null && process.env.PASSWORD !== ""
+if (hasAuth) {
   const authMiddleware = basicAuth({
     users: { emulerr: process.env.PASSWORD },
     challenge: true,
@@ -54,7 +55,12 @@ if (process.env.PASSWORD !== "") {
   })
 
   app.use((req, res, next) => {
-    if (req.path === "/health" || req.path === "/api/v2/auth/login") {
+    if (req.path === "/health" || req.path === "/api/v2/auth/login" || req.path === "/login") {
+      return next()
+    }
+
+    // Allow unauthenticated Torznab caps so clients can discover capabilities
+    if (req.path === "/api" && req.query.t === "caps") {
       return next()
     }
 

@@ -85,26 +85,29 @@ const searchTypes = {
   kad: "2",
 }
 
+const DEFAULT_MIN_SIZE = 100 * 1024 * 1024 // ~100MB for video; ebooks use 0
+
 async function amuleDoSearchImpl(
   query: string,
   ext: string | undefined,
-  type: keyof typeof searchTypes
+  type: keyof typeof searchTypes,
+  minSize = DEFAULT_MIN_SIZE
 ) {
   const searchUrl = new URL(`${host}/api.php`)
   searchUrl.searchParams.set("do", "search")
   searchUrl.searchParams.set("q", query)
   searchUrl.searchParams.set("ext", ext ?? "")
   searchUrl.searchParams.set("searchType", searchTypes[type])
-  searchUrl.searchParams.set("minSize", (100 * 1012 * 1024).toString(10))
+  searchUrl.searchParams.set("minSize", minSize.toString(10))
 
   return await fetchAmuleApi(searchUrl)
 }
 
-export async function amuleDoDownload(link: string) {
+export async function amuleDoDownload(link: string, category = AmuleCategory.downloads) {
   const downloadUrl = new URL(`${host}/api.php`)
   downloadUrl.searchParams.set("do", "download")
   downloadUrl.searchParams.set("link", link)
-  downloadUrl.searchParams.set("category", AmuleCategory.downloads.toString(10))
+  downloadUrl.searchParams.set("category", category.toString(10))
 
   return await fetchAmuleApi(downloadUrl)
 }
@@ -338,11 +341,12 @@ export const amuleDoSearch = staleWhileRevalidate(
   async function (
     q: string,
     ext: string | undefined,
-    type: keyof typeof searchTypes
+    type: keyof typeof searchTypes,
+    minSize = DEFAULT_MIN_SIZE
   ) {
     return await searchMutex.runExclusive(async () => {
       logger.info(`[network] Searching ${type}${ext ? ` (${ext})` : ""}: ${q}`)
-      await amuleDoSearchImpl(q, ext, type)
+      await amuleDoSearchImpl(q, ext, type, minSize)
       let allResults: Awaited<ReturnType<typeof amuleGetSearchResults>> = []
 
       let retries = 6

@@ -44,6 +44,75 @@ services:
       emulerr:
         condition: service_healthy
 
+  lazylibrarian: # books/ebooks
+    container_name: lazylibrarian
+    image: lscr.io/linuxserver/lazylibrarian:latest
+    ports:
+      - 5299:5299
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+    volumes:
+      - ./volume/lazylibrarian-config:/config
+      - ./volume/data/usenet:/downloads
+      - ./volume/data/books:/books
+    restart: unless-stopped
+    depends_on:
+      emulerr:
+        condition: service_healthy
+
+  pymedusa: # tv (alternative to sonarr) - medusa is the current name
+    container_name: pymedusa
+    image: lscr.io/linuxserver/medusa:latest
+    ports:
+      - 8081:8081
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+    volumes:
+      - ./volume/pymedusa-config:/config
+      - ./volume/data:/data
+    restart: unless-stopped
+    depends_on:
+      emulerr:
+        condition: service_healthy
+
+  readarr: # ebooks/audiobooks (deprecated - upstream retired, linuxserver image uses :develop)
+    container_name: readarr
+    image: lscr.io/linuxserver/readarr:develop
+    ports:
+      - 8787:8787
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+    volumes:
+      - ./volume/readarr-config:/config
+      - ./volume/data:/data
+    restart: unless-stopped
+    depends_on:
+      emulerr:
+        condition: service_healthy
+
+  lidarr: # music
+    container_name: lidarr
+    image: lscr.io/linuxserver/lidarr:latest
+    ports:
+      - 8686:8686
+    environment:
+      - PUID=0
+      - PGID=0
+      - TZ=UTC
+    volumes:
+      - ./volume/lidarr-config:/config
+      - ./volume/data:/data
+    restart: unless-stopped
+    depends_on:
+      emulerr:
+        condition: service_healthy
+
   emulerr:
     build:
       context: .
@@ -70,13 +139,12 @@ services:
     volumes:
       - ./volume/config:/config
       - ./volume/data/usenet:/downloads
-      
-      # DEV MOUNTS, ignore
-      - ./src:/emulerr-dev # DEV mount
-      # - ./tmp:/emulerr-dev/node_modules # DEV mount
-      - type: bind # DEV mount
-        source: ./src/amule/api.php
-        target: /usr/share/amule/webserver/AmuleWebUI-Reloaded/api.php
-      - type: bind # DEV mount
-        source: ./src/entrypoint.sh
-        target: /home/entrypoint.sh
+
+      # DEV MOUNTS (comment out to run production)
+      # - ./src:/emulerr-dev # DEV mount
+      # - type: bind
+      #   source: ./src/amule/api.php
+      #   target: /usr/share/amule/webserver/AmuleWebUI-Reloaded/api.php
+      # - type: bind
+      #   source: ./src/entrypoint.sh
+      #   target: /home/entrypoint.sh

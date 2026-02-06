@@ -182,15 +182,13 @@ export default function Layout() {
         <button
           className="m-4 flex items-center justify-center gap-2 rounded-md border-2 border-neutral-600 bg-neutral-300 p-4 font-medium leading-none text-neutral-900 lg:gap-4"
           onClick={() => {
-            const urls = prompt(
+            const input = prompt(
               "Enter eD2k links (multiple links separated by semicolon)"
             )
-              ?.trim()
-              .split(";")
-              .map((u) => u.trim())
-              .filter((u) => !!u)
-
-            if (!urls?.length) return
+            const urls = input
+              ? input.trim().split(";").map((u) => u.trim()).filter((u) => !!u)
+              : []
+            if (!urls.length) return
 
             let category: string | null =
               data.categories.length === 1 ? data.categories[0]! : null

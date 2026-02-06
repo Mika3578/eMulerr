@@ -5,18 +5,23 @@ import { logger } from "~/utils/logger"
 import { sanitizeFilename, sanitizeQuery, setReleaseGroup } from "~/utils/naming"
 import { searchKnown, trackKnown } from "./known"
 
-export async function searchAndWaitForResults(q: string | undefined, ext?: string) {
+export type SearchOptions = { ext?: string; minSize?: number }
+
+export async function searchAndWaitForResults(q: string | undefined, options?: SearchOptions | string) {
     if (!q) {
         return []
     }
+
+    const opts = typeof options === "string" ? { ext: options } : options ?? {}
+    const { ext, minSize } = opts
 
     const sanitizedQuery = sanitizeQuery(q)
 
     const stats = await amuleGetStats()
     const [amuleResults, localResults] = await Promise.all([
         Promise.all([
-            stats.serv_addr ? amuleDoSearch(sanitizedQuery, ext, "global") : Promise.resolve([]),
-            stats.kad_connected ? amuleDoSearch(sanitizedQuery, ext, "kad") : Promise.resolve([]),
+            stats.serv_addr ? amuleDoSearch(sanitizedQuery, ext, "global", minSize) : Promise.resolve([]),
+            stats.kad_connected ? amuleDoSearch(sanitizedQuery, ext, "kad", minSize) : Promise.resolve([]),
         ]).then((r) => r.flatMap((x) => x).map(postProcessResult)),
         searchKnown(sanitizedQuery).then((x) => x.map(postProcessResult)),
     ])

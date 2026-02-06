@@ -49,11 +49,11 @@ export function createJsonDb<Schema>(
       await writeFile(`${fileName}.new`, content, { encoding: "utf8" })
       await rm(fileName).catch(() => { })
       await rename(`${fileName}.new`, fileName)
-      await chown(
-        fileName,
-        parseInt(process.env.PUID),
-        parseInt(process.env.PGID)
-      )
+      const uid = parseInt(process.env.PUID ?? "", 10)
+      const gid = parseInt(process.env.PGID ?? "", 10)
+      if (!isNaN(uid) && !isNaN(gid)) {
+        await chown(fileName, uid, gid)
+      }
     })
   }, 5000)
 

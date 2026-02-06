@@ -50,6 +50,7 @@ function colorize(level: LogLevel, ...messages: unknown[]) {
 }
 
 export const memoryLogs: string[] = []
+const MEMORY_LOGS_MAX = 1000
 
 function log(level: LogLevel, ...messages: unknown[]) {
   const currentLogLevel = globalThis.logLevel ?? LOG_LEVEL_VALUES.debug
@@ -57,6 +58,9 @@ function log(level: LogLevel, ...messages: unknown[]) {
 
   if (LOG_LEVEL_VALUES[level] >= currentLogLevel) {
     memoryLogs.push(`[${date}][${level}] ${messages.join(' ')}`)
+    if (memoryLogs.length > MEMORY_LOGS_MAX) {
+      memoryLogs.shift()
+    }
     globalThis.originalConsole[level](colorize(level, `[${date}][${level}]`, ...messages))
   }
 }

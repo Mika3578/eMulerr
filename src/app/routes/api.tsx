@@ -32,6 +32,9 @@ async function handleTorznabRequest(request: Request) {
       return await rawSearch(url)
     case "tvsearch":
       return await tvSearch(url)
+    case "book":
+    case "booksearch":
+      return await bookSearch(url)
     default:
       throw Error("NOT IMPLEMENTED")
   }
@@ -48,17 +51,53 @@ function caps(_url: URL) {
     <search available="yes" supportedParams="q" searchEngine="raw"/>
     <movie-search available="no"/>
     <tv-search available="yes" supportedParams="q,season,ep" searchEngine="raw"/>
+    <book-search available="yes" supportedParams="q,author,title" searchEngine="raw"/>
+    <audio-search available="yes" supportedParams="q" searchEngine="raw"/>
   </searching>
   <categories>
     <category id="2000" name="Movies" />
     <category id="5000" name="TV" />
-    <category id="7000" name="Other" />
+    <category id="7000" name="Other">
+      <subcat id="7020" name="Other/EBook" />
+      <subcat id="7030" name="Other/Comics" />
+      <subcat id="7040" name="Other/Magazines" />
+    </category>
+    <category id="8000" name="Books">
+      <subcat id="8010" name="Ebooks" />
+    </category>
+    <category id="8030" name="Magazines" />
+    <category id="3030" name="Audio" />
     <category id="10000" name="All" />
   </categories>
   <tags>
     <tag name="freeleech" description="FreeLeech" />
   </tags>
 </caps>`
+}
+
+async function bookSearch(url: URL) {
+  const author = url.searchParams.get("author")?.toString()?.trim()
+  const title = url.searchParams.get("title")?.toString()?.trim()
+  const q = url.searchParams.get("q")?.toString()?.trim()
+  const built = [author, title].filter(Boolean).join(" ").trim()
+  const query = (q ?? built) || undefined
+  if (!query) {
+    return emptyResponse()
+  }
+  const offset = url.searchParams.get("offset")
+  const cat =
+    url.searchParams
+      .get("cat")
+      ?.toString()
+      ?.split(",")
+      ?.map((x) => parseInt(x)) ?? [8000, 8010, 7020, 7040]
+
+  if (offset && offset !== "0") {
+    return emptyResponse()
+  }
+
+  const searchResults = await search(query, cat.length > 0 ? cat : [8000, 8010, 7020, 7040])
+  return itemsResponse(searchResults, cat)
 }
 
 async function rawSearch(url: URL) {
@@ -81,7 +120,7 @@ async function rawSearch(url: URL) {
     return itemsResponse([fakeItem], cat)
   }
 
-  const searchResults = await search(q)
+  const searchResults = await search(q, cat)
   return itemsResponse(searchResults, cat)
 }
 
@@ -128,7 +167,7 @@ async function tvSearch(url: URL) {
 
   const episodeFilter = group(episodeQuery, "OR", true)
   const query = group([q, episodeFilter], "AND", false)
-  const searchResults = await search(query)
+  const searchResults = await search(query, cat)
   return itemsResponse(searchResults, cat)
 }
 

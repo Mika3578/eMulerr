@@ -1,5 +1,8 @@
 import { LoaderFunction } from "@remix-run/node"
 
+// qBittorrent Web API v1 compatibility: GET /version/api
+// Returns Web API version as plain text (e.g. 2.8.19)
+// Used by LazyLibrarian when connecting to download client
 export const loader = (() =>
   new Response(`2.8.19`, {
     status: 200,

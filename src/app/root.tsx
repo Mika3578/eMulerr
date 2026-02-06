@@ -51,5 +51,11 @@ export function ErrorBoundary() {
 
   useEffect(() => {
     navigate(".", { replace: true })
-  }, [])
+  }, [navigate])
+
+  return (
+    <main className="flex min-h-full items-center justify-center p-4">
+      <p className="text-neutral-400">Something went wrong. Redirecting...</p>
+    </main>
+  )
 }
