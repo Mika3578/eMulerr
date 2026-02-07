@@ -14,7 +14,15 @@ FILE="/app/lazylibrarian/lazylibrarian/downloadmethods.py"
 echo "Patching LazyLibrarian in container: $CONTAINER"
 echo "File: $FILE"
 
+# Check if the patch has already been applied to avoid modifying the file multiple times.
+if docker exec "$CONTAINER" grep -q \
+  'b16encode(b32decode(torrent_hash)).decode().lower()' "$FILE" 2>/dev/null; then
+  echo "Patch already applied. No changes made."
+  exit 0
+fi
+
+# Apply the patch, restricting the substitution to the first occurrence of the pattern.
 docker exec "$CONTAINER" sed -i \
-  's/b16encode(b32decode(torrent_hash)).lower()/b16encode(b32decode(torrent_hash)).decode().lower()/' \
+  '0,/b16encode(b32decode(torrent_hash)).lower()/s//b16encode(b32decode(torrent_hash)).decode().lower()/' \
   "$FILE" && echo "Patch applied. Restart LazyLibrarian to ensure the fix is loaded." \
   || echo "Patch failed. Check container name and that LazyLibrarian is running."

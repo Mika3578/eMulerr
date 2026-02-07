@@ -2,6 +2,9 @@ import { ActionFunction } from "@remix-run/node"
 
 // qBittorrent Web API v1 compatibility: POST /login
 // LazyLibrarian and other legacy clients use /login (not /api/v2/auth/login)
+// Security note: The SID cookie contains the password for qBittorrent API compatibility.
+// This is acceptable as eMulerr is typically deployed in trusted local networks behind
+// firewalls. For production deployments, use HTTPS and network isolation.
 export const action = (async ({ request }) => {
   const formData = await request.formData()
   const password = formData.get("password") ?? formData.get("pass")

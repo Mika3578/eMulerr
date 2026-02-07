@@ -140,7 +140,7 @@ services:
       - ./volume/config:/config
       - ./volume/data/usenet:/downloads
 
-      # DEV MOUNTS (comment out to run production)
+      # DEV MOUNTS (uncomment for development)
       # - ./src:/emulerr-dev # DEV mount
       # - type: bind
       #   source: ./src/amule/api.php
