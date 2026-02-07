@@ -3,6 +3,7 @@
 # Bug: In calculate_torrent_hash(), b16encode() returns bytes in Python 3, causing str+bytes error.
 # Fix: Add .decode() so the hash is a string before concatenation.
 #
+# Requirements: GNU sed (usually available in Linux containers; BSD sed not supported)
 # Usage: ./scripts/patch-lazylibrarian-torrent-hash.sh [container_name]
 # Default container name: lazylibrarian
 
