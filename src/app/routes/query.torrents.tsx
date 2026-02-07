@@ -23,19 +23,25 @@ export const loader = (async ({ request }) => {
       dlspeed: f.speed,
       eta: f.eta,
       state: statusToQbittorrentState(f.status_str),
-      content_path: contentPath(f.name),
+      content_path: contentPath(f.name, f.meta?.category),
       category: f.meta?.category,
     }))
 
   return json(torrents)
 }) satisfies LoaderFunction
 
-function contentPath(name: string) {
-  if (existsSync(`/downloads/complete/${name}`)) {
-    return `/downloads/complete/${name}`
-  }
-  if (existsSync(`/tmp/shared/${name}`)) {
-    return `/tmp/shared/${name}`
+function contentPath(name: string, category?: string) {
+  const cat = category?.toLowerCase()
+  const paths = [
+    cat === "books" && `/downloads/complete/books/${name}`,
+    cat === "magazines" && `/downloads/complete/magazines/${name}`,
+    `/downloads/complete/${name}`,
+    `/downloads/complete/books/${name}`,
+    `/downloads/complete/magazines/${name}`,
+    `/tmp/shared/${name}`,
+  ].filter(Boolean) as string[]
+  for (const p of paths) {
+    if (existsSync(p)) return p
   }
   return undefined
 }
