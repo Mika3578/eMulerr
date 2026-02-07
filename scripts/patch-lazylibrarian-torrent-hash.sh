@@ -21,7 +21,7 @@ if docker exec "$CONTAINER" grep -q \
   exit 0
 fi
 
-# Apply the patch, restricting the substitution to the first occurrence of the pattern.
+# Apply the patch, restricting the substitution to the first occurrence (requires GNU sed).
 docker exec "$CONTAINER" sed -i \
   '0,/b16encode(b32decode(torrent_hash)).lower()/s//b16encode(b32decode(torrent_hash)).decode().lower()/' \
   "$FILE" && echo "Patch applied. Restart LazyLibrarian to ensure the fix is loaded." \
