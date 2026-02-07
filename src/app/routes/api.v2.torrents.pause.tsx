@@ -1,4 +1,5 @@
 import { ActionFunction, LoaderFunction } from "@remix-run/node"
+import { normalizeHash } from "~/data/downloadClient"
 import { skipFalsy } from "~/utils/array"
 import { logger } from "~/utils/logger"
 
@@ -6,7 +7,7 @@ import { logger } from "~/utils/logger"
 function getHashes(request: Request): string[] {
   const url = new URL(request.url)
   const hashesParam = url.searchParams.get("hashes")
-  const fromQuery = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy) : []
+  const fromQuery = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy).map(normalizeHash) : []
   if (fromQuery.length) return fromQuery
   return []
 }
@@ -27,7 +28,7 @@ export const action = (async ({ request }) => {
   logger.debug("URL", request.url)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()
-  const hashesRaw = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy) : []
+  const hashesRaw = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy).map(normalizeHash) : []
   const hashes = hashesRaw.length ? hashesRaw : getHashes(request)
   if (hashes.length) {
     // aMule has no pause; accept for compatibility

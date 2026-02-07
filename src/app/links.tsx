@@ -9,7 +9,12 @@ export function toMagnetLink(hash: string, name: string, size: number) {
   return `magnet:?xt=urn:btih:${base32Hash}&dn=${encodeURIComponent(name)}&xl=${size}&tr=http://emulerr`
 }
 
-/** Detect if btih value is hex (40 chars) or base32 (32 chars) */
+/** Detect if btih value is hex (40 chars) or base32 (32 chars).
+ * Note: Converts 40-char BitTorrent info hash (SHA-1, 20 bytes) to 32-char ed2k hash (MD4, 16 bytes).
+ * This truncation is intentional for ed2k compatibility and takes the first 16 bytes.
+ * While this may theoretically increase collision risk, it's acceptable for the bridge use case
+ * where we're converting magnet links for immediate download via ed2k protocol.
+ */
 function parseBtih(btih: string): string {
   if (/^[0-9a-fA-F]{40}$/.test(btih)) {
     return btih.substring(0, 32).toUpperCase()

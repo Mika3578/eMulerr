@@ -11,9 +11,6 @@ const BOOK_CATS = [8000, 8010, 8030, 7020, 7030, 7040] // Books, Ebooks, Magazin
 const AUDIO_CATS = [3030] // Audio
 
 const VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "wmv", "mpeg", "mpg"]
-const EBOOK_EXTENSIONS = ["epub", "mobi", "azw3", "azw", "djvu", "fb2"]
-const MAGAZINE_EXTENSIONS = ["cbz", "cbr", "cbt", "rar", "zip", "7z"]
-// pdf appears in both ebook and magazine; union for book-related categories
 const BOOK_EXTENSIONS = ["epub", "pdf", "mobi", "azw", "azw3", "djvu", "fb2", "cbz", "cbr", "cbt", "rar", "zip", "7z"]
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "m4b", "flac", "ogg", "aac"]
 
@@ -36,9 +33,10 @@ function getAllowedExtensions(categories: number[]): string[] {
   return exts.length > 0 ? exts : [...VIDEO_EXTENSIONS, ...BOOK_EXTENSIONS, ...AUDIO_EXTENSIONS]
 }
 
-/** Whether search needs low minSize (ebooks/mags are small). LazyLibrarian uses t=search with no cat for generalbook. */
+/** Whether search needs low minSize (ebooks/mags are small).
+ * A search is considered a "book search" only when it explicitly specifies a book-related category.
+ */
 export function isBookSearch(categories: number[]): boolean {
-  if (categories.length === 0) return true // no cat = allow all, incl. ebooks
   return categories.some((c) => BOOK_CATS.includes(c) || [7000, 10000].includes(c))
 }
 

@@ -80,6 +80,10 @@ eMulerr supports LazyLibrarian for books, magazines, and audiobooks via the eD2K
 
 Add LazyLibrarian with eMulerr as dependency:
 
+> **Security Note**: The example below uses `:latest` tag for simplicity. For production deployments, 
+> it's recommended to pin to a specific version tag (e.g., `:version-1.6.0`) or digest to prevent 
+> unexpected updates and reduce supply chain risks.
+
 ```yml
 lazylibrarian:
   container_name: lazylibrarian

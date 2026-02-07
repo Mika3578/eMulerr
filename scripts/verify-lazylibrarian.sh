@@ -5,6 +5,11 @@
 # Example: ./scripts/verify-lazylibrarian.sh http://localhost:3000 mypassword
 
 set -e
+
+# Create unique temporary file and ensure cleanup on exit
+TMPFILE=$(mktemp)
+trap 'rm -f "$TMPFILE"' EXIT
+
 BASE="${1:-http://localhost:3000}"
 APIKEY="${2:-}"
 AUTH="${APIKEY:+&apikey=$APIKEY}"
@@ -53,9 +58,9 @@ fi
 # 3. t=book
 echo -n "3. Torznab t=book... "
 BOOK_URL="${BASE}/api?t=book&q=test${AUTH:-}"
-BOOK_HTTP=$(curl -sS -o /tmp/book.xml -w "%{http_code}" "$BOOK_URL")
+BOOK_HTTP=$(curl -sS -o "$TMPFILE" -w "%{http_code}" "$BOOK_URL")
 if [ "$BOOK_HTTP" = "200" ]; then
-  if grep -q '<rss' /tmp/book.xml && grep -q 'torznab:response' /tmp/book.xml; then
+  if grep -q '<rss' "$TMPFILE" && grep -q 'torznab:response' "$TMPFILE"; then
     echo "OK (200, valid RSS)"
   else
     echo "FAIL: invalid RSS"
