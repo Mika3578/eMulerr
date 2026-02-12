@@ -1,6 +1,6 @@
 import { LoaderFunction, json } from "@remix-run/node"
 import { existsSync } from "fs"
-import { getDownloadClientFiles } from "~/data/downloadClient"
+import { getDownloadClientFiles, savePath } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 // qBittorrent Web API v1 compatibility: GET /query/torrents
@@ -45,13 +45,6 @@ function contentPath(name: string, category?: string) {
     if (existsSync(p)) return p
   }
   return undefined
-}
-
-function savePath(category?: string) {
-  const cat = category?.toLowerCase()
-  if (cat === "books") return "/downloads/complete/books"
-  if (cat === "magazines") return "/downloads/complete/magazines"
-  return "/downloads/complete"
 }
 
 function statusToQbittorrentState(

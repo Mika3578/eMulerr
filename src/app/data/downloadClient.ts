@@ -17,6 +17,14 @@ export function normalizeHash(hash: string): string {
   return hash.length === 40 ? hash.substring(0, 32) : hash
 }
 
+/** Return the base directory for a given category */
+export function savePath(category?: string) {
+  const cat = category?.toLowerCase()
+  if (cat === "books") return "/downloads/complete/books"
+  if (cat === "magazines") return "/downloads/complete/magazines"
+  return "/downloads/complete"
+}
+
 export const metadataDb = createJsonDb<
   Record<string, { category: string; addedOn: number }>
 >("/config/hash-metadata.json", {})
@@ -126,12 +134,7 @@ export async function remove(hashes: string[]) {
 
         if (file) {
           const meta = metadataDb.data[hash]
-          const basePath =
-            meta?.category?.toLowerCase() === "books"
-              ? "/downloads/complete/books"
-              : meta?.category?.toLowerCase() === "magazines"
-                ? "/downloads/complete/magazines"
-                : "/downloads/complete"
+          const basePath = savePath(meta?.category)
           await unlink(`${basePath}/${file.name}`).catch(() => void 0)
           await unlink(`/tmp/shared/${file.name}`).catch(() => void 0)
         }
