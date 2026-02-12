@@ -66,8 +66,19 @@ else
   exit 1
 fi
 
-# 4. Pause
-echo -n "4. POST /api/v2/torrents/pause... "
+# 4. query/torrents (v1 API used by LazyLibrarian for download status)
+echo -n "4. GET /query/torrents... "
+QUERY_URL="${BASE}/query/torrents${APIKEY:+?apikey=$APIKEY}"
+QUERY_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" "$QUERY_URL")
+if [ "$QUERY_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $QUERY_HTTP"
+  exit 1
+fi
+
+# 5. Pause
+echo -n "5. POST /api/v2/torrents/pause... "
 PAUSE_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/pause?hashes=00000000000000000000000000000000")
 if [ "$PAUSE_HTTP" = "200" ]; then
   echo "OK (200)"
@@ -76,13 +87,22 @@ else
   exit 1
 fi
 
-# 5. Resume
-echo -n "5. POST /api/v2/torrents/resume... "
+# 6. Resume
+echo -n "6. POST /api/v2/torrents/resume... "
 RESUME_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/resume?hashes=00000000000000000000000000000000")
 if [ "$RESUME_HTTP" = "200" ]; then
   echo "OK (200)"
 else
   echo "FAIL: HTTP $RESUME_HTTP"
+  exit 1
+fi
+
+# 7. Magazine category (8030) in caps
+echo -n "7. Torznab caps magazine category... "
+if echo "$CAPS" | grep -q 'id="8030"'; then
+  echo "OK (category 8030 Magazines)"
+else
+  echo "FAIL: category 8030 Magazines not found"
   exit 1
 fi
 

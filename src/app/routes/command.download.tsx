@@ -28,7 +28,7 @@ export const action = (async ({ request }) => {
   try {
     const isEd2k = firstUrl.startsWith("ed2k://")
     const { hash, name, size } = isEd2k ? fromEd2kLink(firstUrl) : fromMagnetLink(firstUrl)
-    await download(hash, name, size, category ?? "magazines")
+    await download(hash, name, size, category ?? "downloads")
     return new Response("Ok.", { status: 200, headers })
   } catch (err) {
     logger.warn("command/download failed:", err)

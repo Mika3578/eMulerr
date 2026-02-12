@@ -7,7 +7,7 @@ export const action = (async ({ request }) => {
   logger.debug("URL", request.url)
   const formData = await request.formData()
   const urlsRaw = formData.get("urls")?.toString() ?? formData.get("url")?.toString()
-  const category = formData.get("category")?.toString() ?? "magazines"
+  const category = formData.get("category")?.toString() ?? "downloads"
 
   if (!urlsRaw) {
     return new Response("Fails.", {

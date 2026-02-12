@@ -27,6 +27,7 @@ export const loader = (async ({ request }) => {
         eta: f.eta,
         state: statusToQbittorrentState(f.status_str),
         content_path: contentPath(f.name, f.meta?.category),
+        save_path: savePath(f.meta?.category),
         category: f.meta?.category,
       })),
   ])
@@ -48,6 +49,13 @@ function contentPath(name: string, category?: string) {
     if (existsSync(p)) return p
   }
   return undefined
+}
+
+function savePath(category?: string) {
+  const cat = category?.toLowerCase()
+  if (cat === "books") return "/downloads/complete/books"
+  if (cat === "magazines") return "/downloads/complete/magazines"
+  return "/downloads/complete"
 }
 
 function statusToQbittorrentState(
