@@ -9,12 +9,18 @@ import {
 import { AmuleCategory } from "amule/amule.types"
 import { toEd2kLink } from "~/links"
 import { unlink } from "node:fs/promises"
+import { basename } from "node:path"
 import { createJsonDb } from "~/utils/jsonDb"
 import { staleWhileRevalidate } from "~/utils/memoize"
 
 /** Normalize qBittorrent 40-char hash to internal 32-char ed2k hash */
 export function normalizeHash(hash: string): string {
   return hash.length === 40 ? hash.substring(0, 32) : hash
+}
+
+/** Strip path separators to prevent traversal when building filesystem paths */
+export function safeName(name: string): string {
+  return basename(name)
 }
 
 /** Return the base directory for a given category */
@@ -99,6 +105,18 @@ function resolveAmuleCategory(category: string, name: string): AmuleCategory {
   return AmuleCategory.downloads
 }
 
+/** Map AmuleCategory enum back to the normalized category label used for path resolution */
+function categoryLabel(cat: AmuleCategory): string {
+  switch (cat) {
+    case AmuleCategory.books:
+      return "books"
+    case AmuleCategory.magazines:
+      return "magazines"
+    default:
+      return "downloads"
+  }
+}
+
 export async function download(
   hash: string,
   name: string,
@@ -108,7 +126,7 @@ export async function download(
   const ed2kLink = toEd2kLink(hash, name, size)
   const amuleCat = resolveAmuleCategory(category, name)
   await amuleDoDownload(ed2kLink, amuleCat)
-  setCategory(hash, category)
+  setCategory(hash, categoryLabel(amuleCat))
 }
 
 export function setCategory(hash: string, category: string) {
@@ -135,8 +153,9 @@ export async function remove(hashes: string[]) {
         if (file) {
           const meta = metadataDb.data[hash]
           const basePath = savePath(meta?.category)
-          await unlink(`${basePath}/${file.name}`).catch(() => void 0)
-          await unlink(`/tmp/shared/${file.name}`).catch(() => void 0)
+          const safe = safeName(file.name)
+          await unlink(`${basePath}/${safe}`).catch(() => void 0)
+          await unlink(`/tmp/shared/${safe}`).catch(() => void 0)
         }
 
         delete metadataDb.data[hash]

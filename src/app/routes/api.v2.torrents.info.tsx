@@ -1,7 +1,7 @@
 import { LoaderFunction, json } from "@remix-run/node"
 import { amuleGetDownloads } from "amule/amule"
 import { existsSync } from "fs"
-import { getDownloadClientFiles, savePath } from "~/data/downloadClient"
+import { getDownloadClientFiles, savePath, safeName } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 export const loader = (async ({ request }) => {
@@ -36,14 +36,15 @@ export const loader = (async ({ request }) => {
 export const action = loader
 
 function contentPath(name: string, category?: string) {
+  const safe = safeName(name)
   const cat = category?.toLowerCase()
   const paths = [
-    cat === "books" && `/downloads/complete/books/${name}`,
-    cat === "magazines" && `/downloads/complete/magazines/${name}`,
-    `/downloads/complete/${name}`,
-    `/downloads/complete/books/${name}`,
-    `/downloads/complete/magazines/${name}`,
-    `/tmp/shared/${name}`,
+    cat === "books" && `/downloads/complete/books/${safe}`,
+    cat === "magazines" && `/downloads/complete/magazines/${safe}`,
+    `/downloads/complete/${safe}`,
+    `/downloads/complete/books/${safe}`,
+    `/downloads/complete/magazines/${safe}`,
+    `/tmp/shared/${safe}`,
   ].filter(Boolean) as string[]
   for (const p of paths) {
     if (existsSync(p)) return p
