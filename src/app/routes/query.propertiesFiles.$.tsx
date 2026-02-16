@@ -13,19 +13,19 @@ export const loader = (async ({ request, params }) => {
 
   const hash = normalizeHash(rawHash)
   const files = await getDownloadClientFiles()
-  const file = files.find((f) => f.hash === hash)
+  const torrent = files.find((f) => f.hash === hash)
 
-  if (!file) {
+  if (!torrent) {
     return json([], { status: 404 })
   }
 
   return json([
     {
-      name: safeName(file.name),
-      size: file.size,
-      progress: file.progress,
+      name: safeName(torrent.name),
+      size: torrent.size,
+      progress: torrent.progress,
       priority: 1,
-      is_seed: file.progress === 1,
+      is_seed: torrent.progress === 1,
     },
   ])
 }) satisfies LoaderFunction
