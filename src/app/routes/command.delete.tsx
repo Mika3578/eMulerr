@@ -8,7 +8,7 @@ import { logger } from "~/utils/logger"
 export const action = (async ({ request }) => {
   logger.debug("URL", request.url)
   const formData = await request.formData()
-  const hashRaw = formData.get("hash")?.toString()?.toUpperCase()
+  const hashRaw = (formData.get("hashes") ?? formData.get("hash"))?.toString()?.toUpperCase()
 
   if (hashRaw) {
     const hash = normalizeHash(hashRaw)
