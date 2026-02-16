@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Verify LazyLibrarian support: caps, version, t=book, pause/resume
+# Verify LazyLibrarian support: caps, version, v1 endpoints (query/command), t=book
 # Usage: ./scripts/verify-lazylibrarian.sh [BASE_URL] [API_KEY]
 # Example: ./scripts/verify-lazylibrarian.sh http://localhost:3000
 # Example: ./scripts/verify-lazylibrarian.sh http://localhost:3000 mypassword
@@ -33,7 +33,7 @@ else
   exit 1
 fi
 
-# 2. Version
+# 2. Version (v2 endpoint used by *arr apps)
 echo -n "2. GET /api/v2/app/version... "
 VERSION_URL="${BASE}/api/v2/app/version${APIKEY:+?apikey=$APIKEY}"
 VER=$(curl -sS -o /dev/null -w "%{http_code}" "$VERSION_URL")
@@ -47,6 +47,23 @@ if [ "$VER" = "200" ]; then
   fi
 else
   echo "FAIL: HTTP $VER"
+  exit 1
+fi
+
+# 2b. Version (v1 endpoint used by LazyLibrarian)
+echo -n "2b. GET /version/api (v1, integer)... "
+V1VER_URL="${BASE}/version/api${APIKEY:+?apikey=$APIKEY}"
+V1VER_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" "$V1VER_URL")
+if [ "$V1VER_HTTP" = "200" ]; then
+  V1VER_BODY=$(curl -sS "$V1VER_URL")
+  if echo "$V1VER_BODY" | grep -qE '^[0-9]+$'; then
+    echo "OK (200, api_version=$V1VER_BODY)"
+  else
+    echo "FAIL: expected integer, got '$V1VER_BODY'"
+    exit 1
+  fi
+else
+  echo "FAIL: HTTP $V1VER_HTTP"
   exit 1
 fi
 
@@ -77,8 +94,8 @@ else
   exit 1
 fi
 
-# 5. Pause
-echo -n "5. POST /api/v2/torrents/pause... "
+# 5. Pause (v2)
+echo -n "5. POST /api/v2/torrents/pause (v2)... "
 PAUSE_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/pause?hashes=00000000000000000000000000000000")
 if [ "$PAUSE_HTTP" = "200" ]; then
   echo "OK (200)"
@@ -87,13 +104,33 @@ else
   exit 1
 fi
 
-# 6. Resume
-echo -n "6. POST /api/v2/torrents/resume... "
+# 5b. Pause (v1 - used by LazyLibrarian)
+echo -n "5b. POST /command/pause (v1)... "
+PAUSE_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/pause")
+if [ "$PAUSE_V1_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $PAUSE_V1_HTTP"
+  exit 1
+fi
+
+# 6. Resume (v2)
+echo -n "6. POST /api/v2/torrents/resume (v2)... "
 RESUME_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/resume?hashes=00000000000000000000000000000000")
 if [ "$RESUME_HTTP" = "200" ]; then
   echo "OK (200)"
 else
   echo "FAIL: HTTP $RESUME_HTTP"
+  exit 1
+fi
+
+# 6b. Resume (v1 - used by LazyLibrarian)
+echo -n "6b. POST /command/resume (v1)... "
+RESUME_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/resume")
+if [ "$RESUME_V1_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $RESUME_V1_HTTP"
   exit 1
 fi
 
@@ -103,6 +140,53 @@ if echo "$CAPS" | grep -q 'id="8030"'; then
   echo "OK (category 8030 Magazines)"
 else
   echo "FAIL: category 8030 Magazines not found"
+  exit 1
+fi
+
+# 8. GET /query/preferences (v1 - used by LazyLibrarian getFolder())
+echo -n "8. GET /query/preferences (v1)... "
+PREF_URL="${BASE}/query/preferences${APIKEY:+?apikey=$APIKEY}"
+PREF_HTTP=$(curl -sS -o /tmp/prefs.json -w "%{http_code}" "$PREF_URL")
+if [ "$PREF_HTTP" = "200" ]; then
+  if grep -q '"save_path"' /tmp/prefs.json && grep -q '"temp_path"' /tmp/prefs.json; then
+    echo "OK (200, has save_path + temp_path)"
+  else
+    echo "FAIL: missing save_path or temp_path in response"
+    exit 1
+  fi
+else
+  echo "FAIL: HTTP $PREF_HTTP"
+  exit 1
+fi
+
+# 9. POST /command/delete (v1 - used by LazyLibrarian removeTorrent)
+echo -n "9. POST /command/delete (v1)... "
+DEL_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/delete")
+if [ "$DEL_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $DEL_HTTP"
+  exit 1
+fi
+
+# 10. POST /command/deletePerm (v1 - used by LazyLibrarian removeTorrent with data)
+echo -n "10. POST /command/deletePerm (v1)... "
+DELPERM_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/deletePerm")
+if [ "$DELPERM_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $DELPERM_HTTP"
+  exit 1
+fi
+
+# 11. GET /query/propertiesGeneral/{hash} (v1 - used by LazyLibrarian getFolder())
+echo -n "11. GET /query/propertiesGeneral/{hash} (v1)... "
+PROPS_URL="${BASE}/query/propertiesGeneral/00000000000000000000000000000000${APIKEY:+?apikey=$APIKEY}"
+PROPS_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" "$PROPS_URL")
+if [ "$PROPS_HTTP" = "200" ] || [ "$PROPS_HTTP" = "404" ]; then
+  echo "OK (HTTP $PROPS_HTTP - endpoint exists)"
+else
+  echo "FAIL: HTTP $PROPS_HTTP"
   exit 1
 fi
 
