@@ -5,7 +5,8 @@ import { logger } from "~/utils/logger"
 // qBittorrent Web API v1 compatibility: GET /query/propertiesFiles/{hash}
 // Used by LazyLibrarian getFiles() to list files in a torrent
 export const loader = (async ({ request, params }) => {
-  logger.debug("URL", request.url)
+  const url = new URL(request.url)
+  logger.debug("URL", url.pathname)
   const rawHash = params["*"]?.toUpperCase()
   if (!rawHash) {
     return json([], { status: 404 })
