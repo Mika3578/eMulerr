@@ -190,5 +190,26 @@ else
   exit 1
 fi
 
+# 12. GET /query/propertiesFiles/{hash} (v1 - used by LazyLibrarian getFiles())
+echo -n "12. GET /query/propertiesFiles/{hash} (v1)... "
+FILES_URL="${BASE}/query/propertiesFiles/00000000000000000000000000000000${APIKEY:+?apikey=$APIKEY}"
+FILES_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" "$FILES_URL")
+if [ "$FILES_HTTP" = "200" ] || [ "$FILES_HTTP" = "404" ]; then
+  echo "OK (HTTP $FILES_HTTP - endpoint exists)"
+else
+  echo "FAIL: HTTP $FILES_HTTP"
+  exit 1
+fi
+
+# 13. POST /command/delete with 'hashes' field (v1 - used by LazyLibrarian removeTorrent)
+echo -n "13. POST /command/delete with hashes field (v1)... "
+DEL_HASHES_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hashes=00000000000000000000000000000000" "${BASE}/command/delete")
+if [ "$DEL_HASHES_HTTP" = "200" ]; then
+  echo "OK (200)"
+else
+  echo "FAIL: HTTP $DEL_HASHES_HTTP"
+  exit 1
+fi
+
 echo ""
 echo "=== All LazyLibrarian checks passed ==="
