@@ -106,7 +106,7 @@ export const itemsResponse = (
             <link>${encode(item.magnetLink)}</link>
             <guid>${item.hash}-${encode(item.name)}</guid>
             <pubDate>${buildRFC822Date(new Date())}</pubDate>
-            <enclosure url="${encode(item.magnetLink)}" length="${item.size}" type="application/x-bittorrent;x-scheme-handler/magnet" />
+            <enclosure url="${encode(item.magnetLink)}" length="${item.size}" type="application/x-bittorrent" />
             <torznab:attr name="size" value="${item.size}" />
             ${categories.map((c) => `<torznab:attr name="category" value="${c}" />`).join("")}
             <torznab:attr name="seeders" value="${item.sources}" />
