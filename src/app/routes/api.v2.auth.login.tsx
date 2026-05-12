@@ -17,7 +17,7 @@ export const action = (async ({ request }) => {
     })
   }
 
-  const sid = hasAuth ? (password ?? process.env.PASSWORD ?? "ok") : "ok"
+  const sid = hasAuth ? (password ?? "ok") : "ok"
   const secure = new URL(request.url).protocol === "https:" ? "; Secure" : ""
   return new Response(`Ok.`, {
     status: 200,
