@@ -4,7 +4,7 @@ import { logger } from "~/utils/logger"
 // qBittorrent Web API v1 compatibility: POST /command/pause
 // aMule has no native pause; accept the request and return 200 for compatibility
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   return new Response("Ok.", {
     status: 200,
     headers: {

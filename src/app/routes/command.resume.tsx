@@ -6,7 +6,7 @@ import { logger } from "~/utils/logger"
 // qBittorrent Web API v1 compatibility: POST /command/resume
 // Used by LazyLibrarian to resume a paused torrent
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashRaw = formData.get("hash")?.toString()?.toUpperCase()
 

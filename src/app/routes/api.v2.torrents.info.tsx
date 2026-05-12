@@ -22,7 +22,7 @@ export const loader = (async ({ request }) => {
         size_done: f.size_done,
         progress:
           f.progress === 1 ? 1 : Math.min(0.999, Math.max(f.progress, 0.001)),
-        dlspeed: f.speed,
+        dlspeed: f.speed ?? 0,
         eta: f.eta,
         state: statusToQbittorrentState(f.status_str),
         content_path: contentPath(f.name, f.meta?.category),

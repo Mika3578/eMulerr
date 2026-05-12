@@ -13,7 +13,7 @@ function getHashes(request: Request): string[] {
 }
 
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const hashes = getHashes(request)
   if (hashes.length) {
     await Promise.all(hashes.map((h) => amuleDoResume(h).catch(() => void 0)))
@@ -28,7 +28,7 @@ export const loader = (async ({ request }) => {
 }) satisfies LoaderFunction
 
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()
   const hashesRaw = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy) : []

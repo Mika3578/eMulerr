@@ -19,7 +19,7 @@ const AUDIO_EXTENSIONS = ["mp3", "m4a", "m4b", "flac", "ogg", "aac"]
 
 function getAllowedExtensions(categories: number[]): string[] {
   if (categories.length === 0) {
-    return [...VIDEO_EXTENSIONS, ...BOOK_EXTENSIONS, ...AUDIO_EXTENSIONS]
+    return VIDEO_EXTENSIONS
   }
   const hasVideo = categories.some((c) => VIDEO_CATS.includes(c))
   const hasBook = categories.some((c) => BOOK_CATS.includes(c))
@@ -38,7 +38,7 @@ function getAllowedExtensions(categories: number[]): string[] {
 
 /** Whether search needs low minSize (ebooks/mags are small). LazyLibrarian uses t=search with no cat for generalbook. */
 export function isBookSearch(categories: number[]): boolean {
-  if (categories.length === 0) return true // no cat = allow all, incl. ebooks
+  if (categories.length === 0) return false
   return categories.some((c) => BOOK_CATS.includes(c) || [7000, 10000].includes(c))
 }
 

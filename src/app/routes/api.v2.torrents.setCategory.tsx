@@ -4,7 +4,7 @@ import { skipFalsy } from "~/utils/array"
 import { logger } from "~/utils/logger"
 
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()
   const hashesRaw = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy) : []

@@ -12,14 +12,25 @@ export function toMagnetLink(hash: string, name: string, size: number) {
 /** Detect if btih value is hex (40 chars) or base32 (32 chars) */
 function parseBtih(btih: string): string {
   if (/^[0-9a-fA-F]{40}$/.test(btih)) {
-    return btih.substring(0, 32).toUpperCase()
+    const hash = btih.toUpperCase()
+    if (!hash.endsWith("00000000")) {
+      throw new Error("Invalid magnet link: unsupported btih format")
+    }
+    return hash.substring(0, 32)
   }
   const b32 = btih.toUpperCase()
   if (/^[A-Z2-7]{32}$/.test(b32)) {
-    return Buffer.from(base32.decode.asBytes(b32))
-      .subarray(0, 16)
-      .toString("hex")
-      .toUpperCase()
+    const bytes = Buffer.from(base32.decode.asBytes(b32))
+    const hash = bytes.subarray(0, 20)
+    if (
+      hash.length !== 20 ||
+      !hash
+        .subarray(16)
+        .every((byte) => byte === 0)
+    ) {
+      throw new Error("Invalid magnet link: unsupported btih format")
+    }
+    return hash.subarray(0, 16).toString("hex").toUpperCase()
   }
   throw new Error("Invalid magnet link: unsupported btih format")
 }

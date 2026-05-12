@@ -6,7 +6,7 @@ import { logger } from "~/utils/logger"
 // Used by LazyLibrarian to remove a torrent AND its data on failure
 // Behaves identically to /command/delete since eMulerr always cleans up files
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashRaw = (formData.get("hashes") ?? formData.get("hash"))?.toString()?.toUpperCase()
 

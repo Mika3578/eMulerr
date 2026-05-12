@@ -22,7 +22,7 @@ export const loader = (async ({ request }) => {
 }) satisfies LoaderFunction
 
 async function handleTorznabRequest(request: Request) {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const url = new URL(request.url)
 
   switch (url.searchParams.get("t")) {

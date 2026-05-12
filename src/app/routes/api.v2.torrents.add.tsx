@@ -4,7 +4,7 @@ import { fromEd2kLink, fromMagnetLink } from "~/links"
 import { logger } from "~/utils/logger"
 
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const urlsRaw = formData.get("urls")?.toString() ?? formData.get("url")?.toString()
   const category = formData.get("category")?.toString() ?? "downloads"

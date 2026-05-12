@@ -12,7 +12,7 @@ function getHashes(request: Request): string[] {
 }
 
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   getHashes(request) // accept but no-op
   return new Response("Ok.", {
     status: 200,
@@ -24,7 +24,7 @@ export const loader = (async ({ request }) => {
 }) satisfies LoaderFunction
 
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()
   const hashesRaw = hashesParam ? hashesParam.toUpperCase().split("|").filter(skipFalsy) : []
