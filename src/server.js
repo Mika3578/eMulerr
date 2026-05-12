@@ -55,7 +55,14 @@ if (hasAuth) {
   })
 
   app.use((req, res, next) => {
-    if (req.path === "/health" || req.path === "/api/v2/auth/login" || req.path === "/login") {
+    if (
+      req.path === "/health" ||
+      req.path === "/api/v2/auth/login" ||
+      req.path === "/login" ||
+      req.path === "/version/api" ||
+      req.path === "/api/v2/app/version" ||
+      req.path === "/api/v2/app/webapiVersion"
+    ) {
       return next()
     }
 

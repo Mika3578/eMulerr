@@ -50,8 +50,8 @@ services:
     ports:
       - 5299:5299
     environment:
-      - PUID=0
-      - PGID=0
+      - PUID=1000
+      - PGID=1000
       - TZ=UTC
     volumes:
       - ./volume/lazylibrarian-config:/config

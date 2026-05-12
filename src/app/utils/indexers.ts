@@ -36,7 +36,7 @@ function getAllowedExtensions(categories: number[]): string[] {
   return exts.length > 0 ? exts : [...VIDEO_EXTENSIONS, ...BOOK_EXTENSIONS, ...AUDIO_EXTENSIONS]
 }
 
-/** Whether search needs low minSize (ebooks/mags are small). LazyLibrarian uses t=search with no cat for generalbook. */
+/** Whether search needs low minSize (ebooks/mags are small). Empty categories intentionally keep default video behavior. */
 export function isBookSearch(categories: number[]): boolean {
   if (categories.length === 0) return false
   return categories.some((c) => BOOK_CATS.includes(c) || [7000, 10000].includes(c))

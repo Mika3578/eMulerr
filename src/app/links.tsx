@@ -57,7 +57,7 @@ export function fromMagnetLink(magnetLink: string) {
   }
 
   const hash = parseBtih(btih)
-  return { hash, name: decodeURIComponent(name), size }
+  return { hash, name, size }
 }
 
 export function toEd2kLink(hash: string, name: string, size: number) {
