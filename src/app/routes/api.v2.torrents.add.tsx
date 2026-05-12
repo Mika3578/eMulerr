@@ -1,6 +1,6 @@
 import { ActionFunction } from "@remix-run/node"
 import { download } from "~/data/downloadClient"
-import { fromMagnetLink } from "~/links"
+import { fromEd2kLink, fromMagnetLink } from "~/links"
 import { logger } from "~/utils/logger"
 
 export const action = (async ({ request }) => {
@@ -8,7 +8,6 @@ export const action = (async ({ request }) => {
   const formData = await request.formData()
   const rawUrls = formData.get("urls")?.toString() ?? ""
   const category = formData.get("category")?.toString() ?? ""
-  formData.get("savepath")?.toString()
 
   const urls = rawUrls
     .split("\n")
@@ -21,7 +20,7 @@ export const action = (async ({ request }) => {
 
   for (const url of urls) {
     try {
-      const { hash, name, size } = fromMagnetLink(url)
+      const { hash, name, size } = url.startsWith("ed2k://") ? fromEd2kLink(url) : fromMagnetLink(url)
       await download(hash, name, size, category)
     } catch {
       return new Response("Fails.", { status: 200, headers: { "Content-Type": "text/plain" } })

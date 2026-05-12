@@ -6,7 +6,10 @@ export const loader = (async ({ request }) => {
   const file = (await getDownloadClientFiles()).find((f) => f.hash === hash)
   const now = Math.floor(Date.now() / 1000)
   const added = file?.meta?.addedOn ? Math.floor(file.meta.addedOn / 1000) : now
-  const complete = file?.progress === 1 ? now : 0
+  const complete =
+    file?.progress === 1
+      ? file.last_seen_complete || (file.meta?.addedOn ? Math.floor(file.meta.addedOn / 1000) : 0)
+      : 0
 
   return json({
     save_path: "/downloads/complete",

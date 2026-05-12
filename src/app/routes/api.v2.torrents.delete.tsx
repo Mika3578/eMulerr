@@ -7,7 +7,8 @@ export const action = (async ({ request }) => {
   logger.debug("URL", request.url)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()?.toUpperCase()
-  const deleteFiles = formData.get("deleteFiles")?.toString() === "true"
+  const rawDeleteFiles = formData.get("deleteFiles")
+  const deleteFiles = rawDeleteFiles === null ? true : rawDeleteFiles.toString() === "true"
 
   const hashes =
     hashesParam === "ALL"

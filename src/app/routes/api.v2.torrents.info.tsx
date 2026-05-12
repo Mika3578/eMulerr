@@ -15,7 +15,9 @@ export const loader = (async ({ request }) => {
       .filter((d) => !category || d.meta?.category === category)
       .map((f) => {
         const isComplete = f.progress >= 1
-        const completedAt = isComplete ? Math.floor(Date.now() / 1000) : 0
+        const completedAt = isComplete
+          ? f.last_seen_complete || (f.meta?.addedOn ? Math.floor(f.meta.addedOn / 1000) : 0)
+          : 0
         const addedAt = f.meta?.addedOn ? Math.floor(f.meta.addedOn / 1000) : Math.floor(Date.now() / 1000)
         const contentPathValue = contentPath(f.name, isComplete)
         return {
@@ -60,6 +62,10 @@ function statusToQbittorrentState(status: Awaited<ReturnType<typeof amuleGetDown
       return "pausedDL"
     case "error":
       return "error"
+    case "completing":
+      return "checkingDL"
+    case "stalled":
+      return "stalledDL"
     default:
       return "stalledDL"
   }
