@@ -17,13 +17,14 @@ export const action = (async ({ request }) => {
   }
 
   const sid = hasAuth ? (password ?? process.env.PASSWORD) : "ok"
+  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : ""
   return new Response(`Ok.`, {
     status: 200,
     headers: {
       "Content-Type": "text/plain",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=0",
-      "Set-Cookie": `SID=${sid}; path=/`,
+      "Set-Cookie": `SID=${sid}; Path=/; HttpOnly; SameSite=Lax${secure}`,
     },
   })
 }) satisfies ActionFunction

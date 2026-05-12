@@ -27,7 +27,7 @@ async function handleTorznabRequest(request: Request) {
 
   switch (url.searchParams.get("t")) {
     case "caps":
-      return caps(url)
+      return caps()
     case "search":
       return await rawSearch(url)
     case "tvsearch":
@@ -40,7 +40,7 @@ async function handleTorznabRequest(request: Request) {
   }
 }
 
-function caps(_url: URL) {
+function caps() {
   return `
 <caps xmlns:torznab="http://torznab.com/schemas/2015/feed">
   <server version="1.0" title="eMulerr" strapline="eMulerr" />
@@ -80,7 +80,7 @@ async function bookSearch(url: URL) {
   const title = url.searchParams.get("title")?.toString()?.trim()
   const q = url.searchParams.get("q")?.toString()?.trim()
   const built = [author, title].filter(Boolean).join(" ").trim()
-  const query = (q ?? built) || undefined
+  const query = (q || built) || undefined
   if (!query) {
     return emptyResponse()
   }
@@ -90,7 +90,8 @@ async function bookSearch(url: URL) {
       .get("cat")
       ?.toString()
       ?.split(",")
-      ?.map((x) => parseInt(x)) ?? [8000, 8010, 7020, 7040]
+      ?.map((x) => Number.parseInt(x, 10))
+      ?.filter(Number.isFinite) ?? [8000, 8010, 7020, 7040]
 
   if (offset && offset !== "0") {
     return emptyResponse()
@@ -170,4 +171,3 @@ async function tvSearch(url: URL) {
   const searchResults = await search(query, cat)
   return itemsResponse(searchResults, cat)
 }
-

@@ -1,11 +1,10 @@
 import { LoaderFunction, json } from "@remix-run/node"
 import { amuleGetDownloads } from "amule/amule"
-import { existsSync } from "fs"
 import { getDownloadClientFiles, savePath, safeName } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const url = new URL(request.url)
   const category = url.searchParams.get("category")
   const files = await getDownloadClientFiles()
@@ -36,20 +35,7 @@ export const loader = (async ({ request }) => {
 export const action = loader
 
 function contentPath(name: string, category?: string) {
-  const safe = safeName(name)
-  const cat = category?.toLowerCase()
-  const paths = [
-    cat === "books" && `/downloads/complete/books/${safe}`,
-    cat === "magazines" && `/downloads/complete/magazines/${safe}`,
-    `/downloads/complete/${safe}`,
-    `/downloads/complete/books/${safe}`,
-    `/downloads/complete/magazines/${safe}`,
-    `/tmp/shared/${safe}`,
-  ].filter(Boolean) as string[]
-  for (const p of paths) {
-    if (existsSync(p)) return p
-  }
-  return undefined
+  return `${savePath(category)}/${safeName(name)}`
 }
 
 function statusToQbittorrentState(

@@ -5,7 +5,7 @@ import { logger } from "~/utils/logger"
 // qBittorrent Web API v1 compatibility: GET /query/propertiesGeneral/{hash}
 // Used by LazyLibrarian getFolder() to determine the save_path for a torrent
 export const loader = (async ({ request, params }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const rawHash = params["*"]?.toUpperCase()
   if (!rawHash) {
     return json({}, { status: 404 })

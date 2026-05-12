@@ -96,7 +96,7 @@ fi
 
 # 5. Pause (v2)
 echo -n "5. POST /api/v2/torrents/pause (v2)... "
-PAUSE_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/pause?hashes=00000000000000000000000000000000")
+PAUSE_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/pause?hashes=00000000000000000000000000000000${APIKEY:+&apikey=$APIKEY}")
 if [ "$PAUSE_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -106,7 +106,7 @@ fi
 
 # 5b. Pause (v1 - used by LazyLibrarian)
 echo -n "5b. POST /command/pause (v1)... "
-PAUSE_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/pause")
+PAUSE_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/pause${APIKEY:+?apikey=$APIKEY}")
 if [ "$PAUSE_V1_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -116,7 +116,7 @@ fi
 
 # 6. Resume (v2)
 echo -n "6. POST /api/v2/torrents/resume (v2)... "
-RESUME_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/resume?hashes=00000000000000000000000000000000")
+RESUME_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST "${BASE}/api/v2/torrents/resume?hashes=00000000000000000000000000000000${APIKEY:+&apikey=$APIKEY}")
 if [ "$RESUME_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -126,7 +126,7 @@ fi
 
 # 6b. Resume (v1 - used by LazyLibrarian)
 echo -n "6b. POST /command/resume (v1)... "
-RESUME_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/resume")
+RESUME_V1_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/resume${APIKEY:+?apikey=$APIKEY}")
 if [ "$RESUME_V1_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -161,7 +161,7 @@ fi
 
 # 9. POST /command/delete (v1 - used by LazyLibrarian removeTorrent)
 echo -n "9. POST /command/delete (v1)... "
-DEL_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/delete")
+DEL_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/delete${APIKEY:+?apikey=$APIKEY}")
 if [ "$DEL_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -171,7 +171,7 @@ fi
 
 # 10. POST /command/deletePerm (v1 - used by LazyLibrarian removeTorrent with data)
 echo -n "10. POST /command/deletePerm (v1)... "
-DELPERM_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/deletePerm")
+DELPERM_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hash=00000000000000000000000000000000" "${BASE}/command/deletePerm${APIKEY:+?apikey=$APIKEY}")
 if [ "$DELPERM_HTTP" = "200" ]; then
   echo "OK (200)"
 else
@@ -203,7 +203,7 @@ fi
 
 # 13. POST /command/delete with 'hashes' field (v1 - used by LazyLibrarian removeTorrent)
 echo -n "13. POST /command/delete with hashes field (v1)... "
-DEL_HASHES_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hashes=00000000000000000000000000000000" "${BASE}/command/delete")
+DEL_HASHES_HTTP=$(curl -sS -o /dev/null -w "%{http_code}" -X POST -d "hashes=00000000000000000000000000000000" "${BASE}/command/delete${APIKEY:+?apikey=$APIKEY}")
 if [ "$DEL_HASHES_HTTP" = "200" ]; then
   echo "OK (200)"
 else

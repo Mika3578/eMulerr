@@ -6,7 +6,7 @@ import { logger } from "~/utils/logger"
 // qBittorrent Web API v1 compatibility: POST /command/download
 // Used by LazyLibrarian when snatching from Torznab
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const urlsRaw = formData.get("urls")?.toString()
   const category = formData.get("category")?.toString() ?? formData.get("label")?.toString()

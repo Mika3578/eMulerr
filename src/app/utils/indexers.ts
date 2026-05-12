@@ -14,7 +14,7 @@ const VIDEO_EXTENSIONS = ["mp4", "mkv", "avi", "wmv", "mpeg", "mpg"]
 const EBOOK_EXTENSIONS = ["epub", "mobi", "azw3", "azw", "djvu", "fb2"]
 const MAGAZINE_EXTENSIONS = ["cbz", "cbr", "cbt", "rar", "zip", "7z"]
 // pdf appears in both ebook and magazine; union for book-related categories
-const BOOK_EXTENSIONS = ["epub", "pdf", "mobi", "azw", "azw3", "djvu", "fb2", "cbz", "cbr", "cbt", "rar", "zip", "7z"]
+const BOOK_EXTENSIONS = [...new Set([...EBOOK_EXTENSIONS, "pdf", ...MAGAZINE_EXTENSIONS])]
 const AUDIO_EXTENSIONS = ["mp3", "m4a", "m4b", "flac", "ogg", "aac"]
 
 function getAllowedExtensions(categories: number[]): string[] {

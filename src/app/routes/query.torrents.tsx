@@ -1,12 +1,11 @@
 import { LoaderFunction, json } from "@remix-run/node"
-import { existsSync } from "fs"
 import { getDownloadClientFiles, savePath, safeName } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 // qBittorrent Web API v1 compatibility: GET /query/torrents
 // Used by LazyLibrarian to verify snatch succeeded
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const url = new URL(request.url)
   const category = url.searchParams.get("category") ?? url.searchParams.get("label")
   const files = await getDownloadClientFiles()
@@ -32,20 +31,7 @@ export const loader = (async ({ request }) => {
 }) satisfies LoaderFunction
 
 function contentPath(name: string, category?: string) {
-  const safe = safeName(name)
-  const cat = category?.toLowerCase()
-  const paths = [
-    cat === "books" && `/downloads/complete/books/${safe}`,
-    cat === "magazines" && `/downloads/complete/magazines/${safe}`,
-    `/downloads/complete/${safe}`,
-    `/downloads/complete/books/${safe}`,
-    `/downloads/complete/magazines/${safe}`,
-    `/tmp/shared/${safe}`,
-  ].filter(Boolean) as string[]
-  for (const p of paths) {
-    if (existsSync(p)) return p
-  }
-  return undefined
+  return `${savePath(category)}/${safeName(name)}`
 }
 
 function statusToQbittorrentState(
