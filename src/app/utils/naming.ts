@@ -17,8 +17,8 @@ export function sanitizeUnicode(str: string) {
 }
 
 export function sanitizeQuery(q: string): string
-export function sanitizeQuery(q: string | undefined | null): string
-export function sanitizeQuery(q: string | undefined | null) {
+export function sanitizeQuery(q: string | undefined | null): string | undefined | null
+export function sanitizeQuery(q: string | undefined | null): string | undefined | null {
   if (!q) {
     return q
   }

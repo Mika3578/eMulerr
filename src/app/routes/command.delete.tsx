@@ -1,0 +1,23 @@
+import { ActionFunction, json } from "@remix-run/node"
+import { normalizeHash, remove } from "~/data/downloadClient"
+import { skipFalsy } from "~/utils/array"
+import { logger } from "~/utils/logger"
+
+// qBittorrent Web API v1 compatibility: POST /command/delete
+// Used by LazyLibrarian to remove a torrent after successful import (keeps data)
+// Note: eMulerr always removes files as well; separate keep/delete behaviour is not applicable to ed2k
+export const action = (async ({ request }) => {
+  logger.debug("URL", new URL(request.url).pathname)
+  const formData = await request.formData()
+  const hashesRaw = (formData.get("hashes") ?? formData.get("hash"))?.toString()?.toUpperCase()
+
+  if (hashesRaw) {
+    const hashes = hashesRaw
+      .split("|")
+      .map((h) => normalizeHash(h))
+      .filter(skipFalsy)
+    await remove(hashes)
+  }
+
+  return json({})
+}) satisfies ActionFunction

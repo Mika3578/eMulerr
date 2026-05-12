@@ -1,11 +1,10 @@
 import { LoaderFunction, json } from "@remix-run/node"
 import { amuleGetDownloads } from "amule/amule"
-import { existsSync } from "fs"
-import { getDownloadClientFiles } from "~/data/downloadClient"
+import { getDownloadClientFiles, savePath, safeName } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const url = new URL(request.url)
   const category = url.searchParams.get("category")
   const files = await getDownloadClientFiles()
@@ -16,17 +15,18 @@ export const loader = (async ({ request }) => {
         return !category || d.meta?.category === category
       })
       .map((f) => ({
-        // qBittorrent structure
-        hash: f.hash,
+        // qBittorrent structure; pad 32-char ed2k hash to 40 chars for LazyLibrarian
+        hash: f.hash.length === 32 ? f.hash + "00000000" : f.hash,
         name: f.name,
         size: f.size,
         size_done: f.size_done,
         progress:
           f.progress === 1 ? 1 : Math.min(0.999, Math.max(f.progress, 0.001)),
-        dlspeed: f.speed,
+        dlspeed: f.speed ?? 0,
         eta: f.eta,
         state: statusToQbittorrentState(f.status_str),
-        content_path: contentPath(f.name),
+        content_path: contentPath(f.name, f.meta?.category),
+        save_path: savePath(f.meta?.category),
         category: f.meta?.category,
       })),
   ])
@@ -34,16 +34,8 @@ export const loader = (async ({ request }) => {
 
 export const action = loader
 
-function contentPath(name: string) {
-  if (existsSync(`/downloads/complete/${name}`)) {
-    return `/downloads/complete/${name}`
-  }
-
-  if (existsSync(`/tmp/shared/${name}`)) {
-    return `/tmp/shared/${name}`
-  }
-
-  return undefined
+function contentPath(name: string, category?: string) {
+  return `${savePath(category)}/${safeName(name)}`
 }
 
 function statusToQbittorrentState(
@@ -62,5 +54,7 @@ function statusToQbittorrentState(
       return "moving"
     case "stopped":
       return "pausedDL"
+    default:
+      return "unknown"
   }
 }

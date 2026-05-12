@@ -6,10 +6,36 @@ import {
   amuleDoDelete,
   amuleDoReloadShared,
 } from "amule/amule"
+import { AmuleCategory } from "amule/amule.types"
 import { toEd2kLink } from "~/links"
 import { unlink } from "node:fs/promises"
+import { basename } from "node:path"
 import { createJsonDb } from "~/utils/jsonDb"
 import { staleWhileRevalidate } from "~/utils/memoize"
+
+const PADDED_BTIH_PATTERN = /^[0-9A-F]{32}00000000$/
+
+/** Normalize qBittorrent-style padded btih hash (16-byte embedded hash + 8 zero hex chars) to internal 32-char hash */
+export function normalizeHash(hash: string): string {
+  const normalized = hash.trim().toUpperCase()
+  if (PADDED_BTIH_PATTERN.test(normalized)) {
+    return normalized.substring(0, 32)
+  }
+  return normalized
+}
+
+/** Strip path separators to prevent traversal when building filesystem paths */
+export function safeName(name: string): string {
+  return basename(name)
+}
+
+/** Return the base directory for a given category */
+export function savePath(category?: string) {
+  const cat = category?.toLowerCase()
+  if (cat === "books") return "/downloads/complete/books"
+  if (cat === "magazines") return "/downloads/complete/magazines"
+  return "/downloads/complete"
+}
 
 export const metadataDb = createJsonDb<
   Record<string, { category: string; addedOn: number }>
@@ -64,6 +90,39 @@ export const getDownloadClientFiles = staleWhileRevalidate(async function () {
   return files
 })
 
+/** Map category string to AmuleCategory; infer from name if generic */
+function resolveAmuleCategory(category: string, name: string): AmuleCategory {
+  const cat = category?.toLowerCase()
+  if (cat === "books") return AmuleCategory.books
+  if (cat === "magazines") return AmuleCategory.magazines
+
+  // Infer from extension or keywords when LazyLibrarian sends a single label
+  const ext = name.split(".").pop()?.toLowerCase()
+  const magazineExts = ["cbz", "cbr", "cbt"]
+  if (ext && magazineExts.includes(ext)) return AmuleCategory.magazines
+
+  const magazineKeywords = /magazine|issue|vol\.?\d/i
+  if (magazineKeywords.test(name)) return AmuleCategory.magazines
+
+  // Default to books for ebook-like categories, else downloads
+  if (cat && ["ebook", "ebooks", "book"].some((k) => cat.includes(k))) {
+    return AmuleCategory.books
+  }
+  return AmuleCategory.downloads
+}
+
+/** Map AmuleCategory enum back to the normalized category label used for path resolution */
+function categoryLabel(cat: AmuleCategory): string {
+  switch (cat) {
+    case AmuleCategory.books:
+      return "books"
+    case AmuleCategory.magazines:
+      return "magazines"
+    default:
+      return "downloads"
+  }
+}
+
 export async function download(
   hash: string,
   name: string,
@@ -71,8 +130,9 @@ export async function download(
   category: string
 ) {
   const ed2kLink = toEd2kLink(hash, name, size)
-  await amuleDoDownload(ed2kLink)
-  setCategory(hash, category)
+  const amuleCat = resolveAmuleCategory(category, name)
+  await amuleDoDownload(ed2kLink, amuleCat)
+  setCategory(hash, categoryLabel(amuleCat))
 }
 
 export function setCategory(hash: string, category: string) {
@@ -88,7 +148,8 @@ export async function remove(hashes: string[]) {
     const shared = await amuleGetShared()
 
     await Promise.all(
-      hashes.map(async (hash) => {
+      hashes.map(async (h) => {
+        const hash = normalizeHash(h)
         const file =
           downloads.find((v) => v.hash === hash) ??
           shared.find((v) => v.hash === hash)
@@ -96,8 +157,11 @@ export async function remove(hashes: string[]) {
         await amuleDoDelete(hash)
 
         if (file) {
-          await unlink(`/downloads/complete/${file.name}`).catch(() => void 0)
-          await unlink(`/tmp/shared/${file.name}`).catch(() => void 0)
+          const meta = metadataDb.data[hash]
+          const basePath = savePath(meta?.category)
+          const safe = safeName(file.name)
+          await unlink(`${basePath}/${safe}`).catch(() => void 0)
+          await unlink(`/tmp/shared/${safe}`).catch(() => void 0)
         }
 
         delete metadataDb.data[hash]
