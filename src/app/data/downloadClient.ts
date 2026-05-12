@@ -13,15 +13,12 @@ import { basename } from "node:path"
 import { createJsonDb } from "~/utils/jsonDb"
 import { staleWhileRevalidate } from "~/utils/memoize"
 
-const ED2K_BTIH_ZERO_SUFFIX = "00000000"
+const PADDED_BTIH_PATTERN = /^[0-9A-F]{32}00000000$/
 
-/** Normalize embedded qBittorrent btih hash (16-byte ed2k hash + zero suffix) to internal 32-char hash */
+/** Normalize qBittorrent-style padded btih hash (16-byte embedded hash + 8 zero hex chars) to internal 32-char hash */
 export function normalizeHash(hash: string): string {
   const normalized = hash.trim().toUpperCase()
-  if (
-    /^[0-9A-F]{40}$/.test(normalized) &&
-    normalized.endsWith(ED2K_BTIH_ZERO_SUFFIX)
-  ) {
+  if (PADDED_BTIH_PATTERN.test(normalized)) {
     return normalized.substring(0, 32)
   }
   return normalized
