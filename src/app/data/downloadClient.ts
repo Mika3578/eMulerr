@@ -82,20 +82,22 @@ export function setCategory(hash: string, category: string) {
   }
 }
 
-export async function remove(hashes: string[]) {
+export async function remove(hashes: string[], deleteFiles = true) {
   if (hashes.length) {
     const downloads = await amuleGetDownloads()
     const shared = await amuleGetShared()
+    const allHashes = [...downloads, ...shared].map((v) => v.hash)
+    const resolvedHashes = hashes.includes("ALL") ? allHashes : hashes
 
     await Promise.all(
-      hashes.map(async (hash) => {
+      resolvedHashes.map(async (hash) => {
         const file =
           downloads.find((v) => v.hash === hash) ??
           shared.find((v) => v.hash === hash)
 
         await amuleDoDelete(hash)
 
-        if (file) {
+        if (deleteFiles && file) {
           await unlink(`/downloads/complete/${file.name}`).catch(() => void 0)
           await unlink(`/tmp/shared/${file.name}`).catch(() => void 0)
         }

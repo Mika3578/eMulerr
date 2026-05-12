@@ -5,8 +5,8 @@ export const action = (async ({ request }) => {
   const password = formData.get("password")
 
   if (process.env.PASSWORD !== "" && process.env.PASSWORD !== password) {
-    return new Response(``, {
-      status: 401,
+    return new Response(`Fails.`, {
+      status: 200,
       headers: {
         "Content-Type": "text/plain",
         "X-Content-Type-Options": "nosniff",

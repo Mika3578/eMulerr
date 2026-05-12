@@ -1,4 +1,4 @@
-import { ActionFunction, json } from "@remix-run/node"
+import { ActionFunction } from "@remix-run/node"
 import { download } from "~/data/downloadClient"
 import { fromMagnetLink } from "~/links"
 import { logger } from "~/utils/logger"
@@ -6,19 +6,27 @@ import { logger } from "~/utils/logger"
 export const action = (async ({ request }) => {
   logger.debug("URL", request.url)
   const formData = await request.formData()
-  const urls = formData.get("urls")?.toString()
-  const category = formData.get("category")?.toString()
+  const rawUrls = formData.get("urls")?.toString() ?? ""
+  const category = formData.get("category")?.toString() ?? ""
+  formData.get("savepath")?.toString()
 
-  if (!urls) {
-    throw new Error("No URL to download")
+  const urls = rawUrls
+    .split("\n")
+    .map((v) => v.trim())
+    .filter(Boolean)
+
+  if (!urls.length) {
+    return new Response("Fails.", { status: 200, headers: { "Content-Type": "text/plain" } })
   }
 
-  if (!category) {
-    throw new Error("No download category")
+  for (const url of urls) {
+    try {
+      const { hash, name, size } = fromMagnetLink(url)
+      await download(hash, name, size, category)
+    } catch {
+      return new Response("Fails.", { status: 200, headers: { "Content-Type": "text/plain" } })
+    }
   }
 
-  const { hash, name, size } = fromMagnetLink(urls)
-  await download(hash, name, size, category)
-
-  return json({})
+  return new Response("Ok.", { status: 200, headers: { "Content-Type": "text/plain" } })
 }) satisfies ActionFunction
