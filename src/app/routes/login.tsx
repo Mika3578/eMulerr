@@ -1,18 +1,25 @@
 import { ActionFunction } from "@remix-run/node"
 
+// qBittorrent Web API v1 compatibility: POST /login
+// LazyLibrarian and other legacy clients use /login (not /api/v2/auth/login)
 export const action = (async ({ request }) => {
   const formData = await request.formData()
   const formPassword = formData.get("password")
-  const password = typeof formPassword === "string" ? formPassword : undefined
+  const formPass = formData.get("pass")
+  const password =
+    typeof formPassword === "string"
+      ? formPassword
+      : typeof formPass === "string"
+        ? formPass
+        : undefined
 
   const hasAuth = process.env.PASSWORD != null && process.env.PASSWORD !== ""
   if (hasAuth && process.env.PASSWORD !== password) {
-    return new Response(`Fails.`, {
-      status: 200,
+    return new Response(``, {
+      status: 403,
       headers: {
         "Content-Type": "text/plain",
         "X-Content-Type-Options": "nosniff",
-        "Cache-Control": "public, max-age=0",
       },
     })
   }
@@ -24,7 +31,6 @@ export const action = (async ({ request }) => {
     headers: {
       "Content-Type": "text/plain",
       "X-Content-Type-Options": "nosniff",
-      "Cache-Control": "public, max-age=0",
       "Set-Cookie": `SID=${sid}; Path=/; HttpOnly; SameSite=Lax${secure}`,
     },
   })

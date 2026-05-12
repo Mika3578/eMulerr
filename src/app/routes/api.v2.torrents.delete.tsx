@@ -1,10 +1,10 @@
 import { ActionFunction } from "@remix-run/node"
-import { remove } from "~/data/downloadClient"
+import { normalizeHash, remove } from "~/data/downloadClient"
 import { skipFalsy } from "~/utils/array"
 import { logger } from "~/utils/logger"
 
 export const action = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const formData = await request.formData()
   const hashesParam = formData.get("hashes")?.toString()?.toUpperCase()
   const rawDeleteFiles = formData.get("deleteFiles")
@@ -13,9 +13,9 @@ export const action = (async ({ request }) => {
   const hashes =
     hashesParam === "ALL"
       ? ["ALL"]
-      : hashesParam?.split("|").filter(skipFalsy)
+      : (hashesParam?.split("|").filter(skipFalsy) ?? []).map(normalizeHash)
 
-  if (hashes?.length) {
+  if (hashes.length) {
     await remove(hashes, deleteFiles)
   }
 

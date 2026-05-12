@@ -1,11 +1,10 @@
 import { LoaderFunction, json } from "@remix-run/node"
 import { amuleGetDownloads } from "amule/amule"
-import { existsSync } from "fs"
-import { getDownloadClientFiles } from "~/data/downloadClient"
+import { getDownloadClientFiles, savePath, safeName } from "~/data/downloadClient"
 import { logger } from "~/utils/logger"
 
 export const loader = (async ({ request }) => {
-  logger.debug("URL", request.url)
+  logger.debug("URL", new URL(request.url).pathname)
   const url = new URL(request.url)
   const category = url.searchParams.get("category")
   const files = await getDownloadClientFiles()
@@ -19,16 +18,17 @@ export const loader = (async ({ request }) => {
           ? f.last_seen_complete || (f.meta?.addedOn ? Math.floor(f.meta.addedOn / 1000) : 0)
           : 0
         const addedAt = f.meta?.addedOn ? Math.floor(f.meta.addedOn / 1000) : Math.floor(Date.now() / 1000)
-        const contentPathValue = contentPath(f.name, isComplete)
         return {
-          hash: f.hash,
+          // Pad 32-char ed2k hash to 40 chars for LazyLibrarian compatibility
+          hash: f.hash.length === 32 ? f.hash + "00000000" : f.hash,
           name: f.name,
           size: f.size,
+          size_done: f.size_done,
           progress: isComplete ? 1 : Math.min(0.999, Math.max(f.progress, 0.001)),
           state: statusToQbittorrentState(f.status_str),
           category: f.meta?.category ?? "",
-          save_path: "/downloads/complete",
-          content_path: contentPathValue,
+          save_path: savePath(f.meta?.category),
+          content_path: contentPath(f.name, f.meta?.category),
           completion_on: completedAt,
           added_on: addedAt,
           amount_left: isComplete ? 0 : Math.max(0, f.size - f.size_done),
@@ -45,11 +45,8 @@ export const loader = (async ({ request }) => {
 
 export const action = loader
 
-function contentPath(name: string, isComplete: boolean) {
-  if (!isComplete) return `/downloads/incomplete/${name}`
-  if (existsSync(`/downloads/complete/${name}`)) return `/downloads/complete/${name}`
-  if (existsSync(`/tmp/shared/${name}`)) return `/tmp/shared/${name}`
-  return `/downloads/complete/${name}`
+function contentPath(name: string, category?: string) {
+  return `${savePath(category)}/${safeName(name)}`
 }
 
 function statusToQbittorrentState(status: Awaited<ReturnType<typeof amuleGetDownloads>>[0]["status_str"]) {
@@ -57,13 +54,13 @@ function statusToQbittorrentState(status: Awaited<ReturnType<typeof amuleGetDown
     case "downloading":
       return "downloading"
     case "downloaded":
-      return "uploading"
+      return "pausedUP"
     case "stopped":
       return "pausedDL"
     case "error":
       return "error"
     case "completing":
-      return "checkingDL"
+      return "moving"
     case "stalled":
       return "stalledDL"
     default:

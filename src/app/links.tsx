@@ -1,5 +1,7 @@
 import base32 from "hi-base32"
 
+const ED2K_BTIH_ZERO_SUFFIX = "00000000"
+
 export function toMagnetLink(hash: string, name: string, size: number) {
   const hashBuffer = Buffer.from(hash, "hex")
   const base32Buffer = Buffer.alloc(20, "\0")
@@ -9,24 +11,53 @@ export function toMagnetLink(hash: string, name: string, size: number) {
   return `magnet:?xt=urn:btih:${base32Hash}&dn=${encodeURIComponent(name)}&xl=${size}&tr=http://emulerr`
 }
 
-export function fromMagnetLink(magnetLink: string) {
-  const extractMagnetLinkInfo =
-    /magnet:\?xt=urn:btih:(?<hash>.*)&dn=(?<name>.*)&xl=(?<size>[^&]+)&tr=http:\/\/emulerr/
-  const {
-    hash: base32Hash,
-    name,
-    size,
-  } = extractMagnetLinkInfo.exec(magnetLink)?.groups ?? {}
+/** Detect if btih value is hex (40 chars) or base32 (32 chars) */
+function parseBtih(btih: string): string {
+  if (/^[0-9a-fA-F]{40}$/.test(btih)) {
+    const hash = btih.toUpperCase()
+    if (!hash.endsWith(ED2K_BTIH_ZERO_SUFFIX)) {
+      throw new Error("Invalid magnet link: unsupported btih format")
+    }
+    return hash.substring(0, 32)
+  }
+  const b32 = btih.toUpperCase()
+  if (/^[A-Z2-7]{32}$/.test(b32)) {
+    const bytes = Buffer.from(base32.decode.asBytes(b32))
+    if (bytes.length < 20) {
+      throw new Error("Invalid magnet link: unsupported btih format")
+    }
+    const embeddedHash = bytes.subarray(0, 20)
+    // eMulerr embeds a 16-byte ed2k hash in a 20-byte btih by appending 4 zero bytes.
+    if (!embeddedHash.subarray(16).every((byte) => byte === 0)) {
+      throw new Error("Invalid magnet link: unsupported btih format")
+    }
+    return embeddedHash.subarray(0, 16).toString("hex").toUpperCase()
+  }
+  throw new Error("Invalid magnet link: unsupported btih format")
+}
 
-  if (!base32Hash || !name || !size) {
+export function fromMagnetLink(magnetLink: string) {
+  if (!magnetLink.startsWith("magnet:?")) {
     throw new Error("Invalid magnet link")
   }
 
-  const hash = Buffer.from(base32.decode.asBytes(base32Hash))
-    .toString("hex")
-    .substring(0, 32)
-    .toUpperCase()
-  return { hash, name: decodeURIComponent(name), size: parseInt(size) }
+  const params = new URLSearchParams(magnetLink.slice(8))
+  const xt = params.get("xt")
+  const btih = xt?.startsWith("urn:btih:") ? xt.slice(9) : null
+  if (!btih) {
+    throw new Error("Invalid magnet link: missing xt=urn:btih")
+  }
+
+  const name = params.get("dn") ?? ""
+  const sizeStr = params.get("xl")
+  const size = sizeStr ? parseInt(sizeStr, 10) : 0
+
+  if (!name || isNaN(size) || size <= 0) {
+    throw new Error("Invalid magnet link: missing dn or xl")
+  }
+
+  const hash = parseBtih(btih)
+  return { hash, name, size }
 }
 
 export function toEd2kLink(hash: string, name: string, size: number) {

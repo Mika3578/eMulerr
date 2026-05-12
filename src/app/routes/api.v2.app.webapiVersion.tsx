@@ -4,7 +4,7 @@ export const loader = (() =>
   new Response(`2.8.0`, {
     status: 200,
     headers: {
-      "Content-Type": "text",
+      "Content-Type": "text/plain;charset=UTF-8",
       "X-Content-Type-Options": "nosniff",
       "Cache-Control": "public, max-age=0",
     },
