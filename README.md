@@ -173,3 +173,23 @@ Then restart LazyLibrarian. The patch adds `.decode()` so the hash is a string b
 Since eMulerr simulates a qBittorrent api, it is fully compatible with:
 - [Decluttarrr](https://github.com/ManiMatter/decluttarr)
 - [eMulerrStalledChecker](https://github.com/Jorman/Scripts/tree/master/eMulerrStalledChecker)
+
+## Troubleshooting
+
+### Container crashes when sharing too many files
+
+If you have a large number of files in your `downloads/complete` directory, aMule may crash when trying to load all shared files at startup. This is a known limitation of aMule itself when handling a high volume of shared files.
+
+**Symptoms:**
+- Container keeps restarting in a crash loop
+- Logs show `FetchError: Invalid response body` or `ECONNRESET` errors when fetching `api.php?get=downloads`
+- Files are only partially visible in the web UI before it becomes unavailable
+
+**Workaround:**
+
+Disable the automatic file sharing feature by setting `MOD_AUTO_SHARE_ENABLED=false` in your docker-compose environment:
+
+```yml
+environment:
+  - MOD_AUTO_SHARE_ENABLED=false
+```
