@@ -7,8 +7,8 @@ export const action = (async ({ request }) => {
 
   const hasAuth = process.env.PASSWORD != null && process.env.PASSWORD !== ""
   if (hasAuth && process.env.PASSWORD !== password) {
-    return new Response(``, {
-      status: 401,
+    return new Response(`Fails.`, {
+      status: 200,
       headers: {
         "Content-Type": "text/plain",
         "X-Content-Type-Options": "nosniff",

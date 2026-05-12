@@ -5,7 +5,9 @@ export const loader = (async () => {
   const categories = await getCategories()
 
   return json(
-    Object.fromEntries(categories.map((c) => [c, { name: c, savePath: "" }]))
+    Object.fromEntries(
+      categories.map((c) => [c, { name: c, savePath: "/downloads/complete" }])
+    )
   )
 }) satisfies LoaderFunction
 

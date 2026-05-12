@@ -1,7 +1,7 @@
 import { LoaderFunction } from "@remix-run/node"
 
 export const loader = (() =>
-  new Response(`2.8.19`, {
+  new Response(`2.8.0`, {
     status: 200,
     headers: {
       "Content-Type": "text/plain;charset=UTF-8",

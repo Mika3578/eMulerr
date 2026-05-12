@@ -11,3 +11,5 @@ export const loader = (() =>
       "Cache-Control": "public, max-age=0",
     },
   })) satisfies LoaderFunction
+
+export const action = loader
