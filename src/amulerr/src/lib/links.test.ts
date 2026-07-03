@@ -52,12 +52,20 @@ describe("fromMagnetLink", () => {
     expect(() => fromMagnetLink(bad)).toThrow("Invalid magnet link")
   })
 
-  it("ignores extra magnet parameters after dn", () => {
+  it("rejects extra parameters inserted before xl", () => {
     const withExtra = magnet.replace(
       `&xl=12345`,
       `&tr=http%3A%2F%2Ftracker&xl=12345`
     )
-    // dn is [^&]+ so extra & in dn would fail; trailing params after xl are not in our format
-    expect(fromMagnetLink(magnet)).toBeTruthy()
+    expect(() => fromMagnetLink(withExtra)).toThrow("Invalid magnet link")
+  })
+
+  it("accepts trailing parameters after tr=http://amulerr", () => {
+    const withTrailing = `${magnet}&foo=bar`
+    expect(fromMagnetLink(withTrailing)).toEqual({
+      hash: ED2K,
+      name: "Test Book",
+      size: 12345,
+    })
   })
 })

@@ -2,7 +2,7 @@
 import { useAmule } from '#/amule'
 import type { DownloadItem } from '#/amule-ec-node/AmuleClient.mjs'
 import { toQbittorrentHash } from '#/lib/links'
-import { qbittorrentTorrentExtras } from '#/lib/qbittorrent'
+import { clampProgress, qbittorrentTorrentExtras, torrentAmountLeft } from '#/lib/qbittorrent'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/api/v2/torrents/info')({
@@ -49,20 +49,21 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
             const fileSize = f.fileSize ?? 0
             const fileSizeDownloaded = f.fileSizeDownloaded ?? 0
             const speed = f.speed ?? 0
+            const amountLeft = torrentAmountLeft(fileSize, fileSizeDownloaded)
             return {
             hash: toQbittorrentHash(f.fileHash),
             name: fileName,
             size: fileSize,
             tracker: 'http://amulerr',
             downloaded: fileSizeDownloaded,
-            progress: Math.min(99.99, parseFloat(f.progress ?? '0')) / 100,
+            progress: clampProgress(f.progress),
             dlspeed: speed,
-            eta: speed > 0 ? (fileSize - fileSizeDownloaded) / speed : 8640000,
+            eta: speed > 0 ? amountLeft / speed : 8640000,
             state: statusToQbittorrentState(f),
             content_path: savePath ? `${savePath}/${fileName}` : fileName,
             save_path: savePath,
             category: f.category_obj?.title ?? "",
-            amount_left: fileSize - fileSizeDownloaded,
+            amount_left: amountLeft,
             num_complete: f.sourceCount ?? 0,
             num_incomplete: f.sourceCountNotCurrent ?? 0,
             num_leechs: f.sourceCountXfer ?? 0,

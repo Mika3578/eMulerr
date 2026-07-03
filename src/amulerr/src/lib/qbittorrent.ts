@@ -41,3 +41,23 @@ export function qbittorrentTorrentExtras(options: {
     upspeed: 0,
   }
 }
+
+/** aMule progress is 0..100; qBittorrent torrent list uses a 0..1 fraction. */
+export function clampProgress(rawProgress: string | number | undefined): number {
+  if (rawProgress === undefined || rawProgress === "") {
+    return 0
+  }
+
+  const percent = typeof rawProgress === "number" ? rawProgress : parseFloat(rawProgress)
+  if (!Number.isFinite(percent) || percent < 0) {
+    return 0
+  }
+  if (percent >= 100) {
+    return 1
+  }
+  return percent / 100
+}
+
+export function torrentAmountLeft(fileSize: number, fileSizeDownloaded: number) {
+  return Math.max(0, fileSize - fileSizeDownloaded)
+}

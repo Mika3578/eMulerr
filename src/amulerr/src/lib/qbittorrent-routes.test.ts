@@ -1,8 +1,10 @@
 import { describe, expect, it, vi } from "vitest"
 import {
+  clampProgress,
   defaultQbittorrentPreferences,
   QBITTORRENT_WEBAPI_VERSION,
   qbittorrentTorrentExtras,
+  torrentAmountLeft,
 } from "./qbittorrent"
 
 vi.mock("#/amule", () => ({
@@ -42,6 +44,21 @@ describe("qbittorrent lib", () => {
       uploaded: 0,
       upspeed: 0,
     })
+  })
+
+  it("clampProgress maps aMule percent to qBittorrent 0..1 fraction", () => {
+    expect(clampProgress(undefined)).toBe(0)
+    expect(clampProgress("50")).toBe(0.5)
+    expect(clampProgress(50)).toBe(0.5)
+    expect(clampProgress("100")).toBe(1)
+    expect(clampProgress(100)).toBe(1)
+    expect(clampProgress("150")).toBe(1)
+    expect(clampProgress(-5)).toBe(0)
+  })
+
+  it("torrentAmountLeft never returns negative values", () => {
+    expect(torrentAmountLeft(100, 50)).toBe(50)
+    expect(torrentAmountLeft(100, 150)).toBe(0)
   })
 })
 
@@ -108,6 +125,61 @@ describe("no-op torrent routes", () => {
 
 const ED2K = "A1B2C3D4E5F60718293A4B5C6D7E8F90"
 const BTIH = `${ED2K.toLowerCase()}00000000`
+
+describe("torrents/info", () => {
+  async function getInfoTorrent(progress: string, fileSize = 100, fileSizeDownloaded = 50, speed = 10) {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "book.pdf",
+            fileSize,
+            fileSizeDownloaded,
+            progress,
+            speed,
+            status: 3,
+          },
+        ],
+        getSharedFiles: async () => [],
+        getCategories: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.info")
+    const response = await getHandler(Route)({
+      request: new Request("http://x/api/v2/torrents/info"),
+    })
+    expect(response.status).toBe(200)
+    return (await response.json())[0]
+  }
+
+  it("returns progress 1 when aMule reports 100", async () => {
+    const torrent = await getInfoTorrent("100", 100, 100)
+    expect(torrent.progress).toBe(1)
+  })
+
+  it("returns progress 1 when aMule reports over 100", async () => {
+    const torrent = await getInfoTorrent("150", 100, 100)
+    expect(torrent.progress).toBe(1)
+  })
+
+  it("returns progress 0.5 when aMule reports 50", async () => {
+    const torrent = await getInfoTorrent("50", 100, 50)
+    expect(torrent.progress).toBe(0.5)
+  })
+
+  it("returns amount_left 0 when downloaded exceeds size", async () => {
+    const torrent = await getInfoTorrent("100", 100, 150, 10)
+    expect(torrent.amount_left).toBe(0)
+  })
+
+  it("returns non-negative eta when downloaded exceeds size", async () => {
+    const torrent = await getInfoTorrent("100", 100, 150, 10)
+    expect(torrent.eta).toBeGreaterThanOrEqual(0)
+    expect(torrent.eta).toBe(0)
+  })
+})
 
 describe("torrents/files and torrents/contents", () => {
   it("GET /torrents/files returns 404 for invalid hash without aMule", async () => {
