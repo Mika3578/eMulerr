@@ -3,12 +3,66 @@ import { parseTorrentHash } from '#/lib/torrents'
 
 export type TorrentFileEntry = {
   index: number
-  name: string | undefined
-  size: number | undefined
+  name: string
+  size: number
   progress: number
   priority: number
   is_seed: boolean
   availability: number
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(max, Math.max(min, value))
+}
+
+function downloadProgress(fileSize: number, fileSizeDownloaded: number) {
+  if (fileSize <= 0) {
+    return 0
+  }
+  return clamp(fileSizeDownloaded / fileSize, 0, 1)
+}
+
+function isFullyDownloaded(fileSize: number, fileSizeDownloaded: number) {
+  return fileSize > 0 && fileSizeDownloaded >= fileSize
+}
+
+export function toDownloadFileEntry(download: {
+  fileName?: string
+  fileSize?: number
+  fileSizeDownloaded?: number
+}): TorrentFileEntry {
+  const name = download.fileName ?? ""
+  const size = download.fileSize ?? 0
+  const downloaded = download.fileSizeDownloaded ?? 0
+  const progress = downloadProgress(size, downloaded)
+
+  return {
+    index: 0,
+    name,
+    size,
+    progress,
+    priority: 1,
+    is_seed: isFullyDownloaded(size, downloaded),
+    availability: 1,
+  }
+}
+
+export function toSharedFileEntry(sharedFile: {
+  fileName?: string
+  fileSize?: number
+}): TorrentFileEntry {
+  const name = sharedFile.fileName ?? ""
+  const size = sharedFile.fileSize ?? 0
+
+  return {
+    index: 0,
+    name,
+    size,
+    progress: 1,
+    priority: 1,
+    is_seed: true,
+    availability: 1,
+  }
 }
 
 export async function extractTorrentHash(request: Request): Promise<string | null> {
@@ -46,28 +100,12 @@ export async function getTorrentFilesResponse(rawHash: string | null | undefined
 
     const download = downloads.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
     if (download) {
-      return {
-        index: 0,
-        name: download.fileName,
-        size: download.fileSize,
-        progress: download.fileSizeDownloaded ?? 0,
-        priority: 1,
-        is_seed: true,
-        availability: 1,
-      } satisfies TorrentFileEntry
+      return toDownloadFileEntry(download)
     }
 
     const sharedFile = shared.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
     if (sharedFile) {
-      return {
-        index: 0,
-        name: sharedFile.fileName,
-        size: sharedFile.fileSize,
-        progress: 1,
-        priority: 1,
-        is_seed: true,
-        availability: 1,
-      } satisfies TorrentFileEntry
+      return toSharedFileEntry(sharedFile)
     }
 
     return null

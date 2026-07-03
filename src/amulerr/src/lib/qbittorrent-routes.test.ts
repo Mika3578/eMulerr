@@ -122,7 +122,7 @@ describe("torrents/files and torrents/contents", () => {
     expect(useAmule).not.toHaveBeenCalled()
   })
 
-  it("POST /torrents/contents returns file list for known hash", async () => {
+  it("GET /torrents/files returns partial download with 0..1 progress and is_seed false", async () => {
     const { useAmule } = await import("#/amule")
     vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
       fn({
@@ -137,14 +137,71 @@ describe("torrents/files and torrents/contents", () => {
         getSharedFiles: async () => [],
       })
     )
-    const { Route } = await import("#/routes/api.v2.torrents.contents")
-    const body = new URLSearchParams({ hash: BTIH })
-    const response = await getHandler(Route, "POST")({
-      request: new Request("http://x/api/v2/torrents/contents", {
-        method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        body,
-      }),
+    const { Route } = await import("#/routes/api.v2.torrents.files")
+    const response = await getHandler(Route)({
+      request: new Request(`http://x/api/v2/torrents/files?hash=${BTIH}`),
+    })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body).toEqual([
+      {
+        index: 0,
+        name: "book.pdf",
+        size: 100,
+        progress: 0.5,
+        priority: 1,
+        is_seed: false,
+        availability: 1,
+      },
+    ])
+    expect(body[0].progress).toBeGreaterThanOrEqual(0)
+    expect(body[0].progress).toBeLessThanOrEqual(1)
+  })
+
+  it("GET /torrents/files defaults missing name/size and uses zero progress", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [{ fileHash: ED2K }],
+        getSharedFiles: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.files")
+    const response = await getHandler(Route)({
+      request: new Request(`http://x/api/v2/torrents/files?hash=${BTIH}`),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual([
+      {
+        index: 0,
+        name: "",
+        size: 0,
+        progress: 0,
+        priority: 1,
+        is_seed: false,
+        availability: 1,
+      },
+    ])
+  })
+
+  it("GET /torrents/files returns completed download with progress 1 and is_seed true", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "book.pdf",
+            fileSize: 100,
+            fileSizeDownloaded: 100,
+          },
+        ],
+        getSharedFiles: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.files")
+    const response = await getHandler(Route)({
+      request: new Request(`http://x/api/v2/torrents/files?hash=${BTIH}`),
     })
     expect(response.status).toBe(200)
     expect(await response.json()).toEqual([
@@ -152,12 +209,80 @@ describe("torrents/files and torrents/contents", () => {
         index: 0,
         name: "book.pdf",
         size: 100,
-        progress: 50,
+        progress: 1,
         priority: 1,
         is_seed: true,
         availability: 1,
       },
     ])
+  })
+
+  it("GET /torrents/files returns shared file with progress 1 and is_seed true", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [],
+        getSharedFiles: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "shared.pdf",
+            fileSize: 42,
+          },
+        ],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.files")
+    const response = await getHandler(Route)({
+      request: new Request(`http://x/api/v2/torrents/files?hash=${BTIH}`),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual([
+      {
+        index: 0,
+        name: "shared.pdf",
+        size: 42,
+        progress: 1,
+        priority: 1,
+        is_seed: true,
+        availability: 1,
+      },
+    ])
+  })
+
+  it("POST /torrents/contents mirrors GET /torrents/files for the same hash", async () => {
+    const { useAmule } = await import("#/amule")
+    const amuleData = {
+      getDownloadQueue: async () => [
+        {
+          fileHash: ED2K,
+          fileName: "book.pdf",
+          fileSize: 100,
+          fileSizeDownloaded: 25,
+        },
+      ],
+      getSharedFiles: async () => [],
+    }
+    vi.mocked(useAmule)
+      .mockImplementationOnce(async (fn) => fn(amuleData))
+      .mockImplementationOnce(async (fn) => fn(amuleData))
+
+    const { Route: filesRoute } = await import("#/routes/api.v2.torrents.files")
+    const filesResponse = await getHandler(filesRoute)({
+      request: new Request(`http://x/api/v2/torrents/files?hash=${BTIH}`),
+    })
+
+    const { Route: contentsRoute } = await import("#/routes/api.v2.torrents.contents")
+    const contentsResponse = await getHandler(contentsRoute, "POST")({
+      request: new Request("http://x/api/v2/torrents/contents", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ hash: BTIH }),
+      }),
+    })
+
+    expect(filesResponse.status).toBe(200)
+    expect(contentsResponse.status).toBe(200)
+    expect(await contentsResponse.json()).toEqual(await filesResponse.json())
   })
 
   it("POST /torrents/contents returns 404 for invalid hash", async () => {
