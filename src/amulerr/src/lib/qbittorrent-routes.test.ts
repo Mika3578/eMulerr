@@ -65,7 +65,7 @@ describe("qbittorrent lib", () => {
 describe("app routes", () => {
   it("/api/v2/app/webapiVersion returns text/plain semver", async () => {
     const { Route } = await import("#/routes/api.v2.app.webapiVersion")
-    const response = await getHandler(Route)()
+    const response = await getHandler(Route)({ request: new Request("http://x/api/v2/app/webapiVersion") })
     expect(response.status).toBe(200)
     expect(response.headers.get("Content-Type")).toBe("text/plain")
     expect(await response.text()).toBe(QBITTORRENT_WEBAPI_VERSION)
@@ -73,14 +73,14 @@ describe("app routes", () => {
 
   it("/api/v2/app/version returns qBittorrent-like version text", async () => {
     const { Route } = await import("#/routes/api.v2.app.version")
-    const response = await getHandler(Route)()
+    const response = await getHandler(Route)({ request: new Request("http://x/api/v2/app/version") })
     expect(response.headers.get("Content-Type")).toBe("text/plain")
     expect(await response.text()).toMatch(/^v/)
   })
 
   it("/api/v2/app/preferences returns required JSON fields", async () => {
     const { Route } = await import("#/routes/api.v2.app.preferences")
-    const response = await getHandler(Route)()
+    const response = await getHandler(Route)({ request: new Request("http://x/api/v2/app/preferences") })
     const body = await response.json()
     expect(body.max_ratio_enabled).toBe(false)
     expect(body.max_seeding_time).toBe(-1)
@@ -115,9 +115,25 @@ describe("torrents/properties", () => {
 })
 
 describe("no-op torrent routes", () => {
+  const postRequest = { request: new Request("http://x", { method: "POST" }) }
+
   it("setShareLimits returns Ok", async () => {
     const { Route } = await import("#/routes/api.v2.torrents.setShareLimits")
-    const response = await getHandler(Route, "POST")({ request: new Request("http://x", { method: "POST" }) })
+    const response = await getHandler(Route, "POST")(postRequest)
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe("Ok")
+  })
+
+  it("topPrio returns Ok", async () => {
+    const { Route } = await import("#/routes/api.v2.torrents.topPrio")
+    const response = await getHandler(Route, "POST")(postRequest)
+    expect(response.status).toBe(200)
+    expect(await response.text()).toBe("Ok")
+  })
+
+  it("setForceStart returns Ok", async () => {
+    const { Route } = await import("#/routes/api.v2.torrents.setForceStart")
+    const response = await getHandler(Route, "POST")(postRequest)
     expect(response.status).toBe(200)
     expect(await response.text()).toBe("Ok")
   })
