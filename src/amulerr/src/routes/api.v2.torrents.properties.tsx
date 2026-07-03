@@ -3,9 +3,11 @@ import { parseTorrentHash } from '#/lib/torrents'
 import { createFileRoute } from '@tanstack/react-router'
 
 // https://github.com/qbittorrent/qBittorrent/wiki/WebUI-API-(qBittorrent-4.1)#get-torrent-generic-properties
-// Used by qBittorrent clients (e.g. LazyLibrarian's get_torrent()) to confirm a torrent
-// was just added. We return a non-empty object when the hash exists, otherwise an empty
-// object (falsy on the client side) so the client can retry.
+//
+// Sonarr/Radarr IsTorrentLoaded() treats any HTTP-200 JSON body as "loaded" (no empty-object check).
+// Missing torrents must return 404 so *rr does not mark a snatch complete prematurely.
+//
+// LazyLibrarian get_torrent() polls this after add; HTTP 404 is falsy (retries), which matches its loop.
 export const Route = createFileRoute('/api/v2/torrents/properties')({
   server: {
     handlers: {
@@ -14,12 +16,12 @@ export const Route = createFileRoute('/api/v2/torrents/properties')({
         const rawHash = url.searchParams.get('hash')
 
         if (!rawHash) {
-          return Response.json({})
+          return new Response(null, { status: 404 })
         }
 
         const hash = parseTorrentHash(rawHash)
         if (!hash) {
-          return Response.json({})
+          return new Response(null, { status: 404 })
         }
 
         const properties = await useAmule(async (amule) => {
@@ -64,7 +66,7 @@ export const Route = createFileRoute('/api/v2/torrents/properties')({
         })
 
         if (!properties) {
-          return Response.json({})
+          return new Response(null, { status: 404 })
         }
 
         return Response.json(properties)

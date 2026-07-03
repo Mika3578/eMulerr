@@ -2,6 +2,7 @@
 import { useAmule } from '#/amule'
 import type { DownloadItem } from '#/amule-ec-node/AmuleClient.mjs'
 import { toQbittorrentHash } from '#/lib/links'
+import { qbittorrentTorrentExtras } from '#/lib/qbittorrent'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/api/v2/torrents/info')({
@@ -69,7 +70,8 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
             seen_complete: f.lastSeenComplete ?? 0,
             last_activity: f.lastReceived ?? 0,
             time_active: f.downloadActiveTime ?? 0,
-            added_on: Math.floor(Date.now() / 1000) - (f.downloadActiveTime ?? 0)
+            added_on: Math.floor(Date.now() / 1000) - (f.downloadActiveTime ?? 0),
+            ...qbittorrentTorrentExtras({ completed: false }),
           }}),
           ...filteredShared.map((f) => {
             const savePath = f.path ?? ""
@@ -86,6 +88,7 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
             content_path: savePath ? `${savePath}/${fileName}` : fileName,
             save_path: savePath,
             category: f.category_obj?.title ?? "",
+            ...qbittorrentTorrentExtras({ completed: true }),
           }}),
         ])
       }

@@ -10,6 +10,9 @@ export const Route = createFileRoute('/api/v2/torrents/add')({
         const urls = formData.get("urls")?.toString()
         const category = formData.get("category")?.toString()
 
+        // qBittorrent clients also send savepath, paused/stopped, ratioLimit, seedingTimeLimit,
+        // sequentialDownload, firstLastPiecePrio, contentLayout — all ignored (no aMule equivalent).
+
         if (!urls) {
           throw new Error("No URL to download")
         }
