@@ -17,13 +17,17 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
           const downloads = await amule.getDownloadQueue()
           const shared = await amule.getSharedFiles()
 
+          const downloadHashes = new Set(
+            downloads.flatMap((d) => (d.fileHash ? [d.fileHash.toUpperCase()] : []))
+          )
+
           return {
             categories,
             downloads: downloads
               .filter(d => !!d.fileHash)
               .map(d => ({ ...d, category_obj: categories.find(c => c.id === d.category) })),
             shared: shared
-              .filter(s => s.fileHash && !downloads.some(d => d.fileHash === s.fileHash))
+              .filter(s => s.fileHash && !downloadHashes.has(s.fileHash.toUpperCase()))
               .map(d => ({ ...d, category_obj: categories.find(c => c.path === d.path) })),
           }
         })

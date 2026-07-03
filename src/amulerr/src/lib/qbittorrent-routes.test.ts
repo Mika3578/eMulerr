@@ -213,6 +213,42 @@ describe("torrents/info", () => {
     expect(torrent.eta).toBeGreaterThanOrEqual(0)
     expect(torrent.eta).toBe(0)
   })
+
+  it("deduplicates shared files against downloads case-insensitively", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "downloading.pdf",
+            fileSize: 100,
+            fileSizeDownloaded: 50,
+            progress: "50",
+            speed: 10,
+            status: 3,
+          },
+        ],
+        getSharedFiles: async () => [
+          {
+            fileHash: ED2K.toLowerCase(),
+            fileName: "shared-same-hash.pdf",
+            fileSize: 100,
+            path: "/shared",
+          },
+        ],
+        getCategories: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.info")
+    const response = await getHandler(Route)({
+      request: new Request("http://x/api/v2/torrents/info"),
+    })
+    expect(response.status).toBe(200)
+    const body = await response.json()
+    expect(body).toHaveLength(1)
+    expect(body[0].name).toBe("downloading.pdf")
+  })
 })
 
 describe("torrents/files and torrents/contents", () => {
