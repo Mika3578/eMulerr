@@ -93,6 +93,24 @@ describe("app routes", () => {
     expect(response.headers.get("Set-Cookie")).toContain("SID=")
     expect(response.headers.get("Cache-Control")).toBe("no-store")
   })
+
+  it("/api/v2/auth/login adds Secure to SID cookie over HTTPS", async () => {
+    const { Route } = await import("#/routes/api.v2.auth.login")
+    const response = await getHandler(Route, "POST")({
+      request: new Request("https://x/api/v2/auth/login"),
+    })
+    expect(response.headers.get("Set-Cookie")).toContain("; Secure")
+  })
+
+  it("/api/v2/auth/logout adds Secure when behind HTTPS proxy", async () => {
+    const { Route } = await import("#/routes/api.v2.auth.logout")
+    const response = await getHandler(Route, "POST")({
+      request: new Request("http://x/api/v2/auth/logout", {
+        headers: { "X-Forwarded-Proto": "https" },
+      }),
+    })
+    expect(response.headers.get("Set-Cookie")).toContain("; Secure")
+  })
 })
 
 describe("torrents/properties", () => {
@@ -371,6 +389,43 @@ describe("torrents/files and torrents/contents", () => {
     expect(filesResponse.status).toBe(200)
     expect(contentsResponse.status).toBe(200)
     expect(await contentsResponse.json()).toEqual(await filesResponse.json())
+  })
+
+  it("POST /torrents/contents falls back to query hash when body hash is empty", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "book.pdf",
+            fileSize: 100,
+            fileSizeDownloaded: 50,
+          },
+        ],
+        getSharedFiles: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.contents")
+    const response = await getHandler(Route, "POST")({
+      request: new Request(`http://x/api/v2/torrents/contents?hash=${BTIH}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ hash: "" }),
+      }),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual([
+      {
+        index: 0,
+        name: "book.pdf",
+        size: 100,
+        progress: 0.5,
+        priority: 1,
+        is_seed: false,
+        availability: 1,
+      },
+    ])
   })
 
   it("POST /torrents/contents returns 404 for invalid hash", async () => {
