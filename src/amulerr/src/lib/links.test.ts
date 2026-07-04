@@ -78,9 +78,14 @@ describe("fromMagnetLink", () => {
     expect(() => fromMagnetLink(fake)).toThrow("Invalid magnet link")
   })
 
-  it("rejects malformed percent-encoding", () => {
-    const bad = magnet.replace(encodeURIComponent("Test Book"), "%E0%A4%A")
-    expect(() => fromMagnetLink(bad)).toThrow("Invalid magnet link")
+  it("accepts filenames containing a literal percent sign", () => {
+    const percentName = "50% Off.mkv"
+    const withPercent = toMagnetLink(ED2K, percentName, 12345)
+    expect(fromMagnetLink(withPercent)).toEqual({
+      hash: ED2K,
+      name: percentName,
+      size: 12345,
+    })
   })
 
   it("rejects invalid size", () => {

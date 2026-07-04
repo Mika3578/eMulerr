@@ -118,14 +118,7 @@ export function fromMagnetLink(magnetLink: string) {
     throw new Error("Invalid magnet link")
   }
 
-  let decodedName: string
-  try {
-    decodedName = decodeURIComponent(name)
-  } catch {
-    throw new Error("Invalid magnet link")
-  }
-
-  return { hash, name: decodedName, size: parsedSize }
+  return { hash, name, size: parsedSize }
 }
 
 export function toEd2kLink(hash: string, name: string, size: number) {
