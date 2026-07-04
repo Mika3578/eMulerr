@@ -692,3 +692,62 @@ describe("torrents/add", () => {
     expect(addEd2kLink).toHaveBeenCalledOnce()
   })
 })
+
+const OTHER_ED2K = "B1B2C3D4E5F60718293A4B5C6D7E8F91"
+
+describe("torrents/delete", () => {
+  async function postDelete(hashes: string) {
+    const { Route } = await import("#/routes/api.v2.torrents.delete")
+    return getHandler(Route, "POST")({
+      request: new Request("http://x/api/v2/torrents/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams({ hashes }),
+      }),
+    })
+  }
+
+  it("clears all shared ecids when hashes=all", async () => {
+    const { useAmule } = await import("#/amule")
+    const clearCompleted = vi.fn(async () => true)
+    const cancelDownload = vi.fn(async () => true)
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [{ fileHash: ED2K }],
+        getSharedFiles: async () => [
+          { ecid: 101, fileHash: ED2K },
+          { ecid: 202, fileHash: OTHER_ED2K },
+        ],
+        clearCompleted,
+        cancelDownload,
+      })
+    )
+
+    const response = await postDelete("all")
+    expect(response.status).toBe(200)
+    expect(clearCompleted).toHaveBeenCalledWith([101, 202])
+    expect(cancelDownload).toHaveBeenCalledWith(ED2K)
+  })
+
+  it("clears only the matching shared ecid for a specific hash", async () => {
+    const { useAmule } = await import("#/amule")
+    const clearCompleted = vi.fn(async () => true)
+    const cancelDownload = vi.fn(async () => true)
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [],
+        getSharedFiles: async () => [
+          { ecid: 101, fileHash: ED2K.toLowerCase() },
+          { ecid: 202, fileHash: OTHER_ED2K },
+        ],
+        clearCompleted,
+        cancelDownload,
+      })
+    )
+
+    const response = await postDelete(BTIH)
+    expect(response.status).toBe(200)
+    expect(clearCompleted).toHaveBeenCalledWith([101])
+    expect(cancelDownload).toHaveBeenCalledWith(ED2K)
+  })
+})
