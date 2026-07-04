@@ -60,13 +60,15 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
             const fileSizeDownloaded = f.fileSizeDownloaded ?? 0
             const speed = f.speed ?? 0
             const amountLeft = torrentAmountLeft(fileSize, fileSizeDownloaded)
+            const progress = clampProgress(f.progress)
+            const now = Math.floor(Date.now() / 1000)
             return {
               hash: toQbittorrentHash(f.fileHash),
               name: fileName,
               size: fileSize,
               tracker: 'http://amulerr',
               downloaded: fileSizeDownloaded,
-              progress: clampProgress(f.progress),
+              progress,
               dlspeed: speed,
               eta: torrentEta(speed, amountLeft),
               state: statusToQbittorrentState(f),
@@ -81,13 +83,16 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
               seen_complete: f.lastSeenComplete ?? 0,
               last_activity: f.lastReceived ?? 0,
               time_active: f.downloadActiveTime ?? 0,
-              added_on: Math.floor(Date.now() / 1000) - (f.downloadActiveTime ?? 0),
-              ...qbittorrentTorrentExtras({ completed: false }),
+              added_on: now - (f.downloadActiveTime ?? 0),
+              ...qbittorrentTorrentExtras({
+                completionOn: progress >= 1 ? now : undefined,
+              }),
             }
           }),
           ...filteredShared.map((f) => {
             const savePath = f.path ?? ""
             const fileName = f.fileName ?? ""
+            const now = Math.floor(Date.now() / 1000)
             return {
               hash: toQbittorrentHash(f.fileHash),
               name: fileName,
@@ -100,7 +105,7 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
               content_path: savePath ? `${savePath}/${fileName}` : fileName,
               save_path: savePath,
               category: f.category_obj?.title ?? "",
-              ...qbittorrentTorrentExtras({ completed: true }),
+              ...qbittorrentTorrentExtras({ completionOn: now }),
             }
           }),
         ])

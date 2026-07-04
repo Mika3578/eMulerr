@@ -50,7 +50,7 @@ describe("qbittorrent lib", () => {
   })
 
   it("adds stable torrent list extras", () => {
-    expect(qbittorrentTorrentExtras({})).toEqual({
+    expect(qbittorrentTorrentExtras()).toEqual({
       ratio: 0,
       max_ratio: -1,
       seeding_time: 0,
@@ -58,6 +58,7 @@ describe("qbittorrent lib", () => {
       uploaded: 0,
       upspeed: 0,
     })
+    expect(qbittorrentTorrentExtras({ completionOn: 1700000000 }).completion_on).toBe(1700000000)
   })
 
   it("clampProgress maps aMule percent to qBittorrent 0..1 fraction", () => {
@@ -235,6 +236,46 @@ describe("torrents/info", () => {
     const torrent = await getInfoTorrent("100", 100, 150, 10)
     expect(torrent.eta).toBeGreaterThanOrEqual(0)
     expect(torrent.eta).toBe(0)
+  })
+
+  it("sets completion_on for finished downloads and shared files", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "done.pdf",
+            fileSize: 100,
+            fileSizeDownloaded: 100,
+            progress: "100",
+            speed: 0,
+            status: 9,
+          },
+        ],
+        getSharedFiles: async () => [
+          {
+            fileHash: "B1B2C3D4E5F60718293A4B5C6D7E8F91",
+            fileName: "shared.pdf",
+            fileSize: 42,
+            path: "/shared",
+          },
+        ],
+        getCategories: async () => [],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.info")
+    const response = await getHandler(Route)({
+      request: new Request("http://x/api/v2/torrents/info"),
+    })
+    const body = await response.json()
+    expect(body[0].completion_on).toBeGreaterThan(0)
+    expect(body[1].completion_on).toBeGreaterThan(0)
+  })
+
+  it("leaves completion_on at -1 for in-progress downloads", async () => {
+    const torrent = await getInfoTorrent("50", 100, 50)
+    expect(torrent.completion_on).toBe(-1)
   })
 
   it("deduplicates shared files against downloads case-insensitively", async () => {

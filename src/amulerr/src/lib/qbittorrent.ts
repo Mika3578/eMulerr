@@ -28,15 +28,13 @@ export function defaultQbittorrentPreferences() {
 
 /** Extra qBittorrent torrent list fields expected by Sonarr/Radarr/LazyLibrarian/PyMedusa. */
 export function qbittorrentTorrentExtras(options: {
-  completed?: boolean
   completionOn?: number
-}) {
-  const completed = options.completed ?? false
+} = {}) {
   return {
     ratio: 0,
     max_ratio: -1,
     seeding_time: 0,
-    completion_on: completed ? (options.completionOn ?? -1) : -1,
+    completion_on: options.completionOn ?? -1,
     uploaded: 0,
     upspeed: 0,
   }
