@@ -1,4 +1,5 @@
 import { useAmule } from '#/amule'
+import { sameEd2kHash } from '#/lib/links'
 import { parseTorrentHash } from '#/lib/torrents'
 
 export type TorrentFileEntry = {
@@ -99,12 +100,12 @@ export async function getTorrentFilesResponse(rawHash: string | null | undefined
     const downloads = await amule.getDownloadQueue()
     const shared = await amule.getSharedFiles()
 
-    const download = downloads.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
+    const download = downloads.find((item) => sameEd2kHash(item.fileHash, hash))
     if (download) {
       return toDownloadFileEntry(download)
     }
 
-    const sharedFile = shared.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
+    const sharedFile = shared.find((item) => sameEd2kHash(item.fileHash, hash))
     if (sharedFile) {
       return toSharedFileEntry(sharedFile)
     }

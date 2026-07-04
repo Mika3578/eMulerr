@@ -1,8 +1,8 @@
 
 import { useAmule } from '#/amule'
 import type { DownloadItem } from '#/amule-ec-node/AmuleClient.mjs'
-import { toQbittorrentHash } from '#/lib/links'
-import { clampProgress, qbittorrentTorrentExtras, torrentAmountLeft } from '#/lib/qbittorrent'
+import { normalizeEd2kHash, toQbittorrentHash } from '#/lib/links'
+import { clampProgress, qbittorrentTorrentExtras, torrentAmountLeft, torrentEta } from '#/lib/qbittorrent'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/api/v2/torrents/info')({
@@ -18,23 +18,29 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
           const shared = await amule.getSharedFiles()
 
           const downloadHashes = new Set(
-            downloads.flatMap((d) => (d.fileHash ? [d.fileHash.toUpperCase()] : []))
+            downloads.flatMap((d) => {
+              const normalized = normalizeEd2kHash(d.fileHash)
+              return normalized ? [normalized] : []
+            })
           )
 
           return {
             categories,
             downloads: downloads
-              .filter(d => !!d.fileHash)
+              .filter(d => !!normalizeEd2kHash(d.fileHash))
               .map(d => ({ ...d, category_obj: categories.find(c => c.id === d.category) })),
             shared: shared
-              .filter(s => s.fileHash && !downloadHashes.has(s.fileHash.toUpperCase()))
+              .filter(s => {
+                const normalized = normalizeEd2kHash(s.fileHash)
+                return normalized !== null && !downloadHashes.has(normalized)
+              })
               .map(d => ({ ...d, category_obj: categories.find(c => c.path === d.path) })),
           }
         })
 
         const filterCategory = categories.find(c => c.title === categoryTitle)
         if (categoryTitle && !filterCategory) {
-          throw new Error(`Category ${categoryTitle} not found`)
+          return Response.json([])
         }
 
         const filteredDownloads = categoryTitle
@@ -62,7 +68,7 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
               downloaded: fileSizeDownloaded,
               progress: clampProgress(f.progress),
               dlspeed: speed,
-              eta: speed > 0 ? amountLeft / speed : 8640000,
+              eta: torrentEta(speed, amountLeft),
               state: statusToQbittorrentState(f),
               content_path: savePath ? `${savePath}/${fileName}` : fileName,
               save_path: savePath,

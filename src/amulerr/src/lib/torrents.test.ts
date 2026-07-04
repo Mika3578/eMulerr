@@ -1,5 +1,12 @@
 import { describe, expect, it, vi } from "vitest"
-import { hasTorrentHashInput, parseTorrentHash, resolveTorrentHashes } from "./torrents"
+import {
+  ed2kHashSet,
+  hasTorrentHashInput,
+  normalizeEd2kHash,
+  parseTorrentHash,
+  resolveTorrentHashes,
+  sameEd2kHash,
+} from "./torrents"
 
 const ED2K = "A1B2C3D4E5F60718293A4B5C6D7E8F90"
 const BTIH = `${ED2K.toLowerCase()}00000000`
@@ -7,6 +14,7 @@ const BTIH = `${ED2K.toLowerCase()}00000000`
 describe("parseTorrentHash", () => {
   it("accepts exact 32-hex ed2k", () => {
     expect(parseTorrentHash(ED2K)).toBe(ED2K)
+    expect(normalizeEd2kHash(ED2K.toLowerCase())).toBe(ED2K)
   })
 
   it("accepts exact 40-hex amulerr btih", () => {
@@ -19,6 +27,19 @@ describe("parseTorrentHash", () => {
     expect(parseTorrentHash("b".repeat(40))).toBeNull()
     expect(parseTorrentHash("|")).toBeNull()
     expect(parseTorrentHash("")).toBeNull()
+  })
+})
+
+describe("sameEd2kHash", () => {
+  it("matches hashes case-insensitively", () => {
+    expect(sameEd2kHash(ED2K, ED2K.toLowerCase())).toBe(true)
+    expect(sameEd2kHash(ED2K, BTIH)).toBe(true)
+  })
+})
+
+describe("ed2kHashSet", () => {
+  it("normalizes hashes in a set", () => {
+    expect(ed2kHashSet([ED2K.toLowerCase(), "bad"])).toEqual(new Set([ED2K]))
   })
 })
 

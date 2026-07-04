@@ -61,3 +61,13 @@ export function clampProgress(rawProgress: string | number | undefined): number 
 export function torrentAmountLeft(fileSize: number, fileSizeDownloaded: number) {
   return Math.max(0, fileSize - fileSizeDownloaded)
 }
+
+export function torrentEta(dlspeed: number, amountLeft: number) {
+  if (amountLeft <= 0) {
+    return 0
+  }
+  if (dlspeed > 0) {
+    return amountLeft / dlspeed
+  }
+  return 8640000
+}

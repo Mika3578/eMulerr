@@ -1,4 +1,5 @@
 import { useAmule } from '#/amule'
+import { sameEd2kHash } from '#/lib/links'
 import { parseTorrentHash } from '#/lib/torrents'
 import { createFileRoute } from '@tanstack/react-router'
 
@@ -27,7 +28,7 @@ export const Route = createFileRoute('/api/v2/torrents/properties')({
         const properties = await useAmule(async (amule) => {
           const downloads = await amule.getDownloadQueue()
 
-          const download = downloads.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
+          const download = downloads.find((item) => sameEd2kHash(item.fileHash, hash))
           if (download) {
             const categories = await amule.getCategories()
             const category = categories.find(c => c.id === download.category)
@@ -47,7 +48,7 @@ export const Route = createFileRoute('/api/v2/torrents/properties')({
           }
 
           const shared = await amule.getSharedFiles()
-          const sharedFile = shared.find((item) => item.fileHash?.toLowerCase() === hash.toLowerCase())
+          const sharedFile = shared.find((item) => sameEd2kHash(item.fileHash, hash))
           if (sharedFile) {
             return {
               save_path: sharedFile.path ?? "",

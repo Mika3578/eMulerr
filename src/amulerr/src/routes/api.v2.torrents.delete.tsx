@@ -1,7 +1,7 @@
 
 import { useAmule } from '#/amule'
 import { skipFalsy } from '#/lib/array'
-import { hasTorrentHashInput, resolveTorrentHashes } from '#/lib/torrents'
+import { hasTorrentHashInput, resolveTorrentHashes, ed2kHashSet, normalizeEd2kHash } from '#/lib/torrents'
 import { createFileRoute } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/api/v2/torrents/delete')({
@@ -20,12 +20,14 @@ export const Route = createFileRoute('/api/v2/torrents/delete')({
             }
 
             const shared = await amule.getSharedFiles()
+            const hashSet = ed2kHashSet(hashes)
             const ecids = shared
               .filter(f => {
                 if (allHashes) {
                   return true
                 }
-                return !!f.fileHash && hashes.includes(f.fileHash.toUpperCase())
+                const normalized = normalizeEd2kHash(f.fileHash)
+                return normalized !== null && hashSet.has(normalized)
               })
               .map(f => f.ecid).filter(skipFalsy)
 

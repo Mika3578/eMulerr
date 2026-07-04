@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from "vitest"
+import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   clampProgress,
   defaultQbittorrentPreferences,
   QBITTORRENT_WEBAPI_VERSION,
   qbittorrentTorrentExtras,
   torrentAmountLeft,
+  torrentEta,
 } from "./qbittorrent"
 
 vi.mock("#/amule", () => ({
@@ -12,9 +13,22 @@ vi.mock("#/amule", () => ({
     fn({
       getDownloadQueue: async () => [],
       getSharedFiles: async () => [],
+      getCategories: async () => [],
     })
   ),
 }))
+
+afterEach(async () => {
+  vi.clearAllMocks()
+  const { useAmule } = await import("#/amule")
+  vi.mocked(useAmule).mockImplementation(async (fn) =>
+    fn({
+      getDownloadQueue: async () => [],
+      getSharedFiles: async () => [],
+      getCategories: async () => [],
+    })
+  )
+})
 
 type RouteHandler = (ctx: { request: Request }) => Promise<Response>
 
@@ -59,6 +73,12 @@ describe("qbittorrent lib", () => {
   it("torrentAmountLeft never returns negative values", () => {
     expect(torrentAmountLeft(100, 50)).toBe(50)
     expect(torrentAmountLeft(100, 150)).toBe(0)
+  })
+
+  it("torrentEta never returns negative values", () => {
+    expect(torrentEta(10, 50)).toBe(5)
+    expect(torrentEta(10, 0)).toBe(0)
+    expect(torrentEta(0, 50)).toBe(8640000)
   })
 })
 
@@ -248,6 +268,34 @@ describe("torrents/info", () => {
     const body = await response.json()
     expect(body).toHaveLength(1)
     expect(body[0].name).toBe("downloading.pdf")
+  })
+
+  it("returns empty array for unknown category filter", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [
+          {
+            fileHash: ED2K,
+            fileName: "book.pdf",
+            fileSize: 100,
+            fileSizeDownloaded: 50,
+            progress: "50",
+            speed: 10,
+            status: 3,
+            category: 1,
+          },
+        ],
+        getSharedFiles: async () => [],
+        getCategories: async () => [{ id: 1, title: "books", path: "/books" }],
+      })
+    )
+    const { Route } = await import("#/routes/api.v2.torrents.info")
+    const response = await getHandler(Route)({
+      request: new Request("http://x/api/v2/torrents/info?category=missing"),
+    })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual([])
   })
 })
 
@@ -502,5 +550,101 @@ describe("torrents/files and torrents/contents", () => {
     })
     expect(response.status).toBe(404)
     expect(await response.json()).toEqual([])
+  })
+})
+
+describe("torrents/add", () => {
+  const magnet = `magnet:?xt=urn:btih:${BTIH}&dn=${encodeURIComponent("book.pdf")}&xl=100&tr=http://amulerr`
+
+  async function postAdd(form: Record<string, string>) {
+    const { Route } = await import("#/routes/api.v2.torrents.add")
+    return getHandler(Route, "POST")({
+      request: new Request("http://x/api/v2/torrents/add", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: new URLSearchParams(form),
+      }),
+    })
+  }
+
+  it("returns 400 when urls is missing", async () => {
+    const { useAmule } = await import("#/amule")
+    const response = await postAdd({ category: "books" })
+    expect(response.status).toBe(400)
+    expect(await response.text()).toBe("Missing urls parameter")
+    expect(useAmule).not.toHaveBeenCalled()
+  })
+
+  it("returns 400 when category is missing or blank", async () => {
+    const { useAmule } = await import("#/amule")
+    const missing = await postAdd({ urls: magnet })
+    expect(missing.status).toBe(400)
+    expect(await missing.text()).toBe("Missing category parameter")
+
+    const blank = await postAdd({ urls: magnet, category: "   " })
+    expect(blank.status).toBe(400)
+    expect(await blank.text()).toBe("Missing category parameter")
+    expect(useAmule).not.toHaveBeenCalled()
+  })
+
+  it("returns 400 for invalid magnet links", async () => {
+    const { useAmule } = await import("#/amule")
+    const response = await postAdd({ urls: "not-a-magnet", category: "books" })
+    expect(response.status).toBe(400)
+    expect(await response.text()).toBe("Invalid magnet link")
+    expect(useAmule).not.toHaveBeenCalled()
+  })
+
+  it("returns 404 for unknown category", async () => {
+    const { useAmule } = await import("#/amule")
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [],
+        getSharedFiles: async () => [],
+        getCategories: async () => [{ id: 1, title: "books", path: "/books" }],
+        addEd2kLink: vi.fn(async () => true),
+      })
+    )
+    const response = await postAdd({ urls: magnet, category: "missing" })
+    expect(response.status).toBe(404)
+    expect(await response.text()).toBe("Category missing not found")
+  })
+
+  it("returns 200 when torrent is already present", async () => {
+    const { useAmule } = await import("#/amule")
+    const addEd2kLink = vi.fn(async () => true)
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => [{ fileHash: ED2K }],
+        getSharedFiles: async () => [],
+        getCategories: async () => [{ id: 1, title: "books", path: "/books" }],
+        addEd2kLink,
+      })
+    )
+    const response = await postAdd({ urls: magnet, category: "books" })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({})
+    expect(addEd2kLink).not.toHaveBeenCalled()
+  })
+
+  it("treats failed add as success when torrent appears after re-check", async () => {
+    const { useAmule } = await import("#/amule")
+    let present = false
+    const addEd2kLink = vi.fn(async () => {
+      present = true
+      return false
+    })
+    vi.mocked(useAmule).mockImplementationOnce(async (fn) =>
+      fn({
+        getDownloadQueue: async () => (present ? [{ fileHash: ED2K }] : []),
+        getSharedFiles: async () => [],
+        getCategories: async () => [{ id: 1, title: "books", path: "/books" }],
+        addEd2kLink,
+      })
+    )
+    const response = await postAdd({ urls: magnet, category: "books" })
+    expect(response.status).toBe(200)
+    expect(await response.json()).toEqual({})
+    expect(addEd2kLink).toHaveBeenCalledOnce()
   })
 })
