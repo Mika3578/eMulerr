@@ -159,6 +159,7 @@ describe("no-op torrent routes", () => {
     const { Route } = await import("#/routes/api.v2.torrents.setShareLimits")
     const response = await getHandler(Route, "POST")(postRequest)
     expect(response.status).toBe(200)
+    expect(response.headers.get("Content-Type")).toBe("text/plain")
     expect(await response.text()).toBe("Ok")
   })
 
@@ -166,6 +167,7 @@ describe("no-op torrent routes", () => {
     const { Route } = await import("#/routes/api.v2.torrents.topPrio")
     const response = await getHandler(Route, "POST")(postRequest)
     expect(response.status).toBe(200)
+    expect(response.headers.get("Content-Type")).toBe("text/plain")
     expect(await response.text()).toBe("Ok")
   })
 
@@ -173,6 +175,7 @@ describe("no-op torrent routes", () => {
     const { Route } = await import("#/routes/api.v2.torrents.setForceStart")
     const response = await getHandler(Route, "POST")(postRequest)
     expect(response.status).toBe(200)
+    expect(response.headers.get("Content-Type")).toBe("text/plain")
     expect(await response.text()).toBe("Ok")
   })
 })
