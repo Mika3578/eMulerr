@@ -71,11 +71,6 @@ export function toQbittorrentHash(ed2kHash: string): string {
   return toQbittorrentHashStrict(ed2kHash) ?? ""
 }
 
-/** @deprecated Prefer fromQbittorrentHashStrict; kept for call sites that already validated btih. */
-export function fromQbittorrentHash(qbittorrentHash: string): string {
-  return fromQbittorrentHashStrict(qbittorrentHash) ?? qbittorrentHash.trim().slice(0, 32).toUpperCase()
-}
-
 export function toMagnetLink(hash: string, name: string, size: number) {
   const btih = toQbittorrentHashStrict(hash)
   if (!btih) {
