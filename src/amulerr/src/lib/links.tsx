@@ -7,7 +7,7 @@ export function toMagnetLink(hash: string, name: string, size: number) {
 
 export function fromMagnetLink(magnetLink: string) {
   const extractMagnetLinkInfo =
-    /magnet:\?xt=urn:btih:(?<hash>[^&]+)&dn=(?<name>[^&]+)&xl=(?<size>[^&]+)&tr=http:\/\/amulerr/
+    /magnet:\?xt=urn:btih:(?<hash>[^&]+)&dn=(?<name>[^&]+)&xl=(?<size>[^&]+)&tr=http:\/\/amulerr(?=&|$)/
   const {
     hash: btih,
     name,

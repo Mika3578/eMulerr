@@ -68,4 +68,12 @@ describe("fromMagnetLink", () => {
       size: 12345,
     })
   })
+
+  it("rejects trackers that only prefix-match http://amulerr", () => {
+    const evilTracker = magnet.replace(
+      "&tr=http://amulerr",
+      "&tr=http://amulerr.evil"
+    )
+    expect(() => fromMagnetLink(evilTracker)).toThrow("Invalid magnet link")
+  })
 })
