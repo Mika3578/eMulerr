@@ -17,8 +17,8 @@ export const Route = createFileRoute('/api/v2/torrents/add')({
     handlers: {
       POST: async ({ request }) => {
         const formData = await request.formData()
-        const urls = formData.get("urls")?.toString().trim()
-        const category = formData.get("category")?.toString().trim()
+        const urls = (formData.get("urls") ?? "").toString().trim()
+        const category = (formData.get("category") ?? "").toString().trim()
 
         // qBittorrent clients also send savepath, paused/stopped, ratioLimit, seedingTimeLimit,
         // sequentialDownload, firstLastPiecePrio, contentLayout — all ignored (no aMule equivalent).

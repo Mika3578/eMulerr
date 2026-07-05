@@ -79,7 +79,7 @@ export async function extractTorrentHash(request: Request): Promise<string | nul
     contentType.includes('application/x-www-form-urlencoded')
   ) {
     const formData = await request.formData()
-    const fromBody = formData.get('hash')?.toString().trim()
+    const fromBody = (formData.get("hash") ?? "").toString().trim()
     return fromBody || fromQuery
   }
 

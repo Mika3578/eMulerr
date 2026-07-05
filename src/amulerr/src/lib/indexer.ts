@@ -21,14 +21,17 @@ export const emptyResponse = (offset: string) => `
 export const itemsResponse = (
   searchResults: Awaited<ReturnType<typeof searchAll>>,
   categories: number[]
-) => `
-  <rss version="2.0" xmlns:torznab="http://torznab.com/schemas/2015/feed">
-    <channel>
-      <torznab:response offset="0" total="${searchResults.length}"/>
-      ${searchResults.map(
-  (item) => {
-    const magnet = toMagnetLink(item.fileHash, item.fileName, item.fileSize)
-    return `
+) => {
+  const items = searchResults.flatMap((item) => {
+    let magnet: string
+    try {
+      magnet = toMagnetLink(item.fileHash, item.fileName, item.fileSize)
+    } catch {
+      return []
+    }
+
+    return [
+      `
           <item>
             <title>${encode(item.fileName)}</title>
             <guid>${item.fileHash}-${encode(item.fileName)}</guid>
@@ -44,12 +47,19 @@ export const itemsResponse = (
             <torznab:attr name="minimumratio" value="0" />
             <torznab:attr name="minimumseedtime" value="0" />
             <torznab:attr name="tag" value="freeleech" />
-          </item>`
-  }
-).join("")}
+          </item>`,
+    ]
+  })
+
+  return `
+  <rss version="2.0" xmlns:torznab="http://torznab.com/schemas/2015/feed">
+    <channel>
+      <torznab:response offset="0" total="${items.length}"/>
+      ${items.join("")}
     </channel>
   </rss>
   `
+}
 
 export function group<T>(
   arr: T[],
