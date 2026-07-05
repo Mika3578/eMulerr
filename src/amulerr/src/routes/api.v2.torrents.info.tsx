@@ -94,7 +94,7 @@ export const Route = createFileRoute('/api/v2/torrents/info')({
             const fileName = f.fileName ?? ""
             const now = Math.floor(Date.now() / 1000)
             return {
-              hash: toQbittorrentHash(f.fileHash),
+              hash: toQbittorrentHash(f.fileHash ?? ""),
               name: fileName,
               size: f.fileSize ?? 0,
               tracker: 'http://amulerr',

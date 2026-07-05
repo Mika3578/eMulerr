@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest"
 import {
   clampProgress,
   defaultQbittorrentPreferences,
+  QBITTORRENT_UNKNOWN_ETA_SECONDS,
   QBITTORRENT_WEBAPI_VERSION,
   qbittorrentTorrentExtras,
   torrentAmountLeft,
@@ -79,7 +80,7 @@ describe("qbittorrent lib", () => {
   it("torrentEta returns integer seconds for qBittorrent compatibility", () => {
     expect(torrentEta(10, 50)).toBe(5)
     expect(torrentEta(10, 0)).toBe(0)
-    expect(torrentEta(0, 50)).toBe(8640000)
+    expect(torrentEta(0, 50)).toBe(QBITTORRENT_UNKNOWN_ETA_SECONDS)
     expect(torrentEta(3, 50)).toBe(17)
     expect(Number.isInteger(torrentEta(3, 50))).toBe(true)
   })

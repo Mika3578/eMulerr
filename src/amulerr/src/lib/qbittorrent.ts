@@ -1,6 +1,9 @@
 export const QBITTORRENT_WEBAPI_VERSION = "2.11.0"
 export const QBITTORRENT_APP_VERSION = "v4.6.7"
 
+/** qBittorrent returns 8640000 s (100 days) when download speed is zero and ETA is unknown. */
+export const QBITTORRENT_UNKNOWN_ETA_SECONDS = 8640000
+
 export function qbittorrentPlainTextResponse(body: string, cacheControl = "public, max-age=0") {
   return new Response(body, {
     status: 200,
@@ -67,5 +70,5 @@ export function torrentEta(dlspeed: number, amountLeft: number) {
   if (dlspeed > 0) {
     return Math.ceil(amountLeft / dlspeed)
   }
-  return 8640000
+  return QBITTORRENT_UNKNOWN_ETA_SECONDS
 }
