@@ -65,7 +65,7 @@ export function torrentEta(dlspeed: number, amountLeft: number) {
     return 0
   }
   if (dlspeed > 0) {
-    return amountLeft / dlspeed
+    return Math.ceil(amountLeft / dlspeed)
   }
   return 8640000
 }

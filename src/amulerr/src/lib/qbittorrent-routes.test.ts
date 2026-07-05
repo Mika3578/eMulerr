@@ -76,10 +76,12 @@ describe("qbittorrent lib", () => {
     expect(torrentAmountLeft(100, 150)).toBe(0)
   })
 
-  it("torrentEta never returns negative values", () => {
+  it("torrentEta returns integer seconds for qBittorrent compatibility", () => {
     expect(torrentEta(10, 50)).toBe(5)
     expect(torrentEta(10, 0)).toBe(0)
     expect(torrentEta(0, 50)).toBe(8640000)
+    expect(torrentEta(3, 50)).toBe(17)
+    expect(Number.isInteger(torrentEta(3, 50))).toBe(true)
   })
 })
 
