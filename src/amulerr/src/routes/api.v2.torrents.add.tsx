@@ -7,6 +7,7 @@ function addError(message: string, status = 400) {
     status,
     headers: {
       "Content-Type": "text/plain",
+      "X-Content-Type-Options": "nosniff",
       "Cache-Control": "no-store",
     },
   })
